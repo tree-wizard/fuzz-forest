@@ -22,6 +22,7 @@ class LibraryFile(Base):
     contents = Column(Text)
     generated = Column(Boolean)
     fuzz_test = Column(Boolean)
+    language = Column(String)
     type = Column(String)
 
 class GeneratedFile(Base):
@@ -31,6 +32,7 @@ class GeneratedFile(Base):
     library_name = Column(String)
     file_name = Column(String)
     contents = Column(Text)
+    runs = Column(Boolean)
     fuzz_test = Column(Boolean)
     type = Column(String)
     coverage = Column(Text)
