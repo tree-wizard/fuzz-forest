@@ -1,0 +1,18 @@
+# Ignore 'github_repos/' directory
+github_repos/
+
+# Ignore '__pycache__' directories
+__pycache__/
+
+# Ignore '*.pyc', '*.pyo' and other compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore '.ipynb_checkpoints' directories (if using Jupyter Notebook)
+.ipynb_checkpoints/
+
+# Ignore the virtual environment directories
+venv/
+.env/
+.envrc

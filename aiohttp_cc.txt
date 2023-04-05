@@ -1,0 +1,170 @@
+github_repos/aiohttp/aiohttp/formdata.py
+    M 45:4 FormData.add_field - C
+    M 132:4 FormData._gen_form_data - B
+    C 14:0 FormData - B
+    M 90:4 FormData.add_fields - B
+github_repos/aiohttp/aiohttp/web_ws.py
+    M 423:4 WebSocketResponse.receive - D
+    M 177:4 WebSocketResponse._handshake - C
+    M 368:4 WebSocketResponse.close - C
+    M 139:4 WebSocketResponse._send_heartbeat - B
+github_repos/aiohttp/aiohttp/web_exceptions.py
+    M 87:4 HTTPException.__init__ - B
+    F 497:0 _initialize_default_reason - B
+github_repos/aiohttp/aiohttp/web_urldispatcher.py
+    M 632:4 StaticResource._handle - B
+    M 420:4 DynamicResource.__init__ - B
+    M 1051:4 UrlDispatcher.add_resource - B
+    M 783:4 Domain.validation - B
+    M 1018:4 UrlDispatcher.register_resource - B
+    M 156:4 AbstractRoute.__init__ - B
+    M 556:4 StaticResource.url_for - B
+    M 345:4 Resource.resolve - B
+github_repos/aiohttp/aiohttp/http_parser.py
+    M 263:4 HttpParser.feed_data - E
+    M 722:4 HttpPayloadParser.feed_data - D
+    C 653:0 HttpPayloadParser - C
+    M 122:4 HeadersParser.parse_headers - C
+    C 498:0 HttpRequestParser - C
+    M 654:4 HttpPayloadParser.__init__ - C
+    M 441:4 HttpParser.parse_headers - B
+    M 506:4 HttpRequestParser.parse_message - B
+    C 205:0 HttpParser - B
+    C 588:0 HttpResponseParser - B
+    C 113:0 HeadersParser - B
+    M 595:4 HttpResponseParser.parse_message - B
+    M 866:4 DeflateBuffer.feed_data - B
+github_repos/aiohttp/aiohttp/streams.py
+    M 311:4 StreamReader.readuntil - C
+    M 347:4 StreamReader.read - B
+    M 387:4 StreamReader.readchunk - B
+    M 451:4 StreamReader._read_nowait_chunk - B
+    M 600:4 DataQueue.read - B
+    M 128:4 StreamReader.__repr__ - B
+    M 231:4 StreamReader.feed_data - B
+github_repos/aiohttp/aiohttp/resolver.py
+    M 29:4 ThreadedResolver.resolve - B
+github_repos/aiohttp/aiohttp/helpers.py
+    M 945:4 CookieMixin.set_cookie - C
+    F 387:0 content_disposition_header - C
+    F 275:0 proxies_from_env - B
+    F 198:0 netrc_from_env - B
+    F 246:0 basicauth_from_netrc - B
+github_repos/aiohttp/aiohttp/client_reqrep.py
+    M 567:4 ClientRequest.send - C
+    M 451:4 ClientRequest.update_body_from_data - C
+    M 525:4 ClientRequest.write_bytes - C
+    M 192:4 ClientRequest.__init__ - C
+    M 843:4 ClientResponse.start - B
+    M 1005:4 ClientResponse.get_encoding - B
+    M 334:4 ClientRequest.update_headers - B
+    M 435:4 ClientRequest.update_auth - B
+    C 165:0 ClientRequest - B
+    M 371:4 ClientRequest.update_cookies - B
+    M 396:4 ClientRequest.update_content_encoding - B
+    M 413:4 ClientRequest.update_transfer_encoding - B
+    M 808:4 ClientResponse.links - B
+    M 917:4 ClientResponse.close - B
+github_repos/aiohttp/aiohttp/http_writer.py
+    M 78:4 StreamWriter.write - C
+    M 132:4 StreamWriter.write_eof - C
+github_repos/aiohttp/aiohttp/client_ws.py
+    M 235:4 ClientWebSocketResponse.receive - C
+    M 188:4 ClientWebSocketResponse.close - C
+github_repos/aiohttp/aiohttp/pytest_plugin.py
+    F 196:0 pytest_generate_tests - B
+    F 126:0 _runtime_warning_context - B
+github_repos/aiohttp/aiohttp/web_fileresponse.py
+    M 128:4 FileResponse.prepare - E
+    C 45:0 FileResponse - B
+    M 83:4 FileResponse._sendfile - B
+github_repos/aiohttp/aiohttp/multipart.py
+    F 74:0 parse_content_disposition - C
+    M 310:4 BodyPartReader.read_chunk - C
+    F 173:0 content_disposition_filename - C
+    M 365:4 BodyPartReader._read_chunk_from_stream - B
+    M 702:4 MultipartReader._read_until_first_boundary - B
+    M 871:4 MultipartWriter.append_payload - B
+    M 1010:4 MultipartPayloadWriter.write - B
+    M 404:4 BodyPartReader.readline - B
+    M 953:4 MultipartWriter.write - B
+github_repos/aiohttp/aiohttp/web_app.py
+    M 371:4 Application._handle - B
+    M 430:4 CleanupContext._on_cleanup - B
+github_repos/aiohttp/aiohttp/payload.py
+    M 138:4 Payload.__init__ - B
+github_repos/aiohttp/aiohttp/client.py
+    M 316:4 ClientSession._request - F
+    M 691:4 ClientSession._ws_connect - D
+    M 191:4 ClientSession.__init__ - C
+github_repos/aiohttp/aiohttp/web_request.py
+    M 689:4 BaseRequest.post - C
+    M 578:4 BaseRequest.http_range - C
+    M 206:4 BaseRequest.clone - B
+    M 316:4 BaseRequest.forwarded - B
+    M 147:4 BaseRequest.__init__ - B
+    M 636:4 BaseRequest.read - B
+    M 820:4 BaseRequest._finish - B
+github_repos/aiohttp/aiohttp/http_websocket.py
+    M 415:4 WebSocketReader.parse_frame - E
+    M 291:4 WebSocketReader._feed_data - D
+    M 594:4 WebSocketWriter._send_frame - C
+    F 172:0 ws_ext_parse - C
+    C 252:0 WebSocketReader - C
+    F 223:0 ws_ext_gen - B
+github_repos/aiohttp/aiohttp/web_protocol.py
+    M 491:4 RequestHandler.start - E
+    M 358:4 RequestHandler.data_received - C
+    M 309:4 RequestHandler.connection_lost - B
+    M 267:4 RequestHandler.shutdown - B
+    M 458:4 RequestHandler._handle_request - B
+    M 612:4 RequestHandler.finish_response - B
+    M 650:4 RequestHandler.handle_error - B
+    C 115:0 RequestHandler - B
+github_repos/aiohttp/aiohttp/worker.py
+    M 62:4 GunicornWebWorker._run - C
+github_repos/aiohttp/aiohttp/web.py
+    F 272:0 _run_app - C
+    F 447:0 run_app - B
+    F 516:0 main - B
+    F 423:0 _cancel_tasks - B
+github_repos/aiohttp/aiohttp/client_proto.py
+    M 204:4 ResponseHandler.data_received - C
+    M 48:4 ResponseHandler.should_close - B
+    M 75:4 ResponseHandler.connection_lost - B
+github_repos/aiohttp/aiohttp/connector.py
+    M 466:4 BaseConnector.connect - D
+    M 798:4 TCPConnector._resolve_host - D
+    M 1071:4 TCPConnector._create_direct_connection - C
+    M 292:4 BaseConnector._cleanup - C
+    M 1148:4 TCPConnector._create_proxy_connection - C
+    M 381:4 BaseConnector._close_immediately - B
+    M 549:4 BaseConnector._get - B
+    M 1010:4 TCPConnector._start_tls_connection - B
+    M 433:4 BaseConnector._available_connections - B
+    M 621:4 BaseConnector._release - B
+    C 706:0 TCPConnector - B
+    M 909:4 TCPConnector._get_ssl_context - B
+    C 163:0 BaseConnector - B
+    M 184:4 BaseConnector.__init__ - B
+    M 580:4 BaseConnector._release_waiter - B
+    M 951:4 TCPConnector._wrap_create_connection - B
+github_repos/aiohttp/aiohttp/web_response.py
+    M 357:4 StreamResponse._prepare_headers - C
+    M 504:4 Response.__init__ - C
+    M 579:4 Response.body - C
+    M 288:4 StreamResponse.etag - B
+    M 663:4 Response.write_eof - B
+    C 496:0 Response - B
+    M 695:4 Response._do_start_compression - B
+    M 641:4 Response.content_length - B
+github_repos/aiohttp/aiohttp/cookiejar.py
+    M 327:4 CookieJar._parse_date - D
+    M 156:4 CookieJar.update_cookies - C
+    M 233:4 CookieJar.filter_cookies - C
+    M 103:4 CookieJar.clear - B
+    C 36:0 CookieJar - B
+    M 59:4 CookieJar.__init__ - B
+github_repos/aiohttp/aiohttp/test_utils.py
+    F 560:0 make_mocked_request - C
+    M 114:4 BaseTestServer.start_server - B
