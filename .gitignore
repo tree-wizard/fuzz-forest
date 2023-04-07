@@ -4,6 +4,10 @@ github_repos/
 # Ignore '__pycache__' directories
 __pycache__/
 
+#Ignore 'crash/' directory and crash-* files
+crash/
+crash-*
+
 # Ignore '*.pyc', '*.pyo' and other compiled files
 *.pyc
 *.pyo
@@ -16,3 +20,4 @@ __pycache__/
 venv/
 .env/
 .envrc
+.env

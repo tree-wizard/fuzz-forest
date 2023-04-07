@@ -22,7 +22,7 @@ class LibraryFile(Base):
     contents = Column(Text)
     generated = Column(Boolean)
     fuzz_test = Column(Boolean)
-    language = Column(String)
+    #language = Column(String)
     type = Column(String)
 
 class GeneratedFile(Base):
@@ -37,6 +37,7 @@ class GeneratedFile(Base):
     type = Column(String)
     coverage = Column(Text)
     cycles = Column(Integer)
+    tokens = Column(Integer)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
