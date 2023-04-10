@@ -4,14 +4,14 @@ import os
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 
+openai.api_key = os.environ["OPENAI_API_KEY"]
+
 class ChatLLM(BaseModel):
     model: str = 'gpt-3.5-turbo'
     temperature: float = Field(default=0.0, ge=0, le=1)
-    openai.api_key = os.environ["OPEN_API_KEY"]
-
 
     def generate(self, prompt: str, stop: List[str] = None) -> str:
-        if not self.openai.api_key:
+        if not openai.api_key:
             raise ValueError("API key is missing or not set")
 
         try:
@@ -27,5 +27,5 @@ class ChatLLM(BaseModel):
 
 if __name__ == '__main__':
     llm = ChatLLM()
-    result = llm.generate(prompt='Who is the president of the USA?')
+    result = llm.generate(prompt='Can I be a security guard?')
     print(result)

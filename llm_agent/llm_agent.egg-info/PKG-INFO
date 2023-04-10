@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: llm-agent
+Version: 0.1.0
+Summary: A package for building agents which use the OpenAI API to figure out actions to take and can use tools.
+Home-page: https://github.com/xxyyx/llm_agent
+Author: X
+Author-email: x@infiniteforest.org
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+
+UNKNOWN
+

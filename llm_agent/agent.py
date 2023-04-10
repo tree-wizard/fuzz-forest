@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Tuple
 from llm_agents.llm import ChatLLM
 from llm_agents.tools.base import ToolInterface
-from llm_agents.tools.python_repl import PythonREPLTool PythonREPLFuzzTool
+from llm_agent.tools.python_repl import PythonREPLTool
 
 FINAL_ANSWER_TOKEN = "Final Answer:"
 OBSERVATION_TOKEN = "Observation:"
@@ -19,8 +19,11 @@ Use the following format:
 Question: the input question you must answer
 Thought: comment on what you want to do next
 Action: the action to take, exactly one element of [{tool_names}]
-
-{extra_instructions}
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation repeats N times, use it until you are sure of the answer)
+Thought: I now know the final answer
+Final Answer: your final answer to the original input question
 
 Begin!
 
@@ -50,16 +53,14 @@ class Agent(BaseModel):
     def run(self, question: str):
         previous_responses = []
         num_loops = 0
-        extra_instructions = "Action Input: the input to the action\nObservation: the result of the action"
         prompt = self.prompt_template.format(
                 today = datetime.date.today(),
                 tool_description=self.tool_description,
                 tool_names=self.tool_names,
                 question=question,
-                previous_responses='{previous_responses}',
-                extra_instructions=extra_instructions
+                previous_responses='{previous_responses}'
         )
-        
+
         while num_loops < self.max_loops:
             num_loops += 1
             curr_prompt = prompt.format(previous_responses='\n'.join(previous_responses))
@@ -83,14 +84,13 @@ class Agent(BaseModel):
         regex = r"Action: [\[]?(.*?)[\]]?[\n]*Action Input:[\s]*(.*)"
         match = re.search(regex, generated, re.DOTALL)
         if not match:
-            raise ValueError(f"Output of LLM is not parsable for next tool use: `{generated}`")
+            raise ValueError(f"Output of LLM is not parsable for next tool use: {generated}")
         tool = match.group(1).strip()
         tool_input = match.group(2)
         return tool, tool_input.strip(" ").strip('"')
-      
 
 if __name__ == 'main':
-  python_code = """for fizzbuzz in range(51):
+  python = """for fizzbuzz in range(51):
 if fizzbuzz % 3 == 0 and fizzbuzz % 5 == 0:
 print("fizzbuzz")
 continue
@@ -100,20 +100,8 @@ continue
 elif fizzbuzz % 5 == 0:
 print("buzz")
 continue
-print(fizzbuzz)"""
-  agent = Agent(llm=ChatLLM(), tools=[PythonREPLTool()])
-  result = agent.run(f'Review this code and fix if any errors. Return only code, no comments or conversational text:\n{python_code}')
-  print(f"Final answer is:\n{result}")
-
-fuzz_code = """
-import atheris
-import sys
-def test(data):
-if data == b'crash':
-raise RuntimeError("You found the crash!")
-atheris.Setup(sys.argv, test)
-atheris.Fuzz()
+print(fizzbuzz)
 """
-  agent2 = Agent(llm=ChatLLM(), tools=[PythonREPLFuzzTool()])
-  result2 = = agent.run(f'Review this code and fix if any errors. Return only code, no comments or conversational text:\n{fuzz_code}')
-  print(f"Final answer is:\n{result2}")
+  agent = Agent(llm=ChatLLM(), tools=[PythonREPLTool()])
+  result = agent.run(python)
+  print(f"Final answer is {result}")

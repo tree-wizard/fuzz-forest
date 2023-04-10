@@ -22,7 +22,8 @@ class LibraryFile(Base):
     contents = Column(Text)
     generated = Column(Boolean)
     fuzz_test = Column(Boolean)
-    #language = Column(String)
+    language = Column(String)
+    complexity = Column(String)
     type = Column(String)
 
 class GeneratedFile(Base):
