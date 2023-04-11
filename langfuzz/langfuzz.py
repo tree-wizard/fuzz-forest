@@ -1,25 +1,26 @@
 import os
 import openai
 import inspect
-import urllib3
-from sqlalchemy.orm import Session
+import importlib
+import pkgutil
 
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
-from langchain.chains import LLMChain, SimpleSequentialChain
+from sqlalchemy.orm import Session
 
 from .langfuzz_recon import LangFuzzRecon
 from .langfuzzDB import Library, LibraryFile, create_tables, get_engine
 
-
 class LangFuzz:
-    def __init__(self, libraries, sqlitedb):
-        self.libraries = libraries
+    def __init__(self, sqlitedb, language, base_prompt_path):
         self.sqlitedb = sqlitedb
+        self.language = language
+        self.base_prompt_path = base_prompt_path #replace with find_base_prompt_path()
+        self.test = "test"
 
-    def create_prompt(self, prompt_template, target_function):
-        prompt = prompt_template + f"{target_function}\n"
-        return prompt
+    def find_base_prompt_path(self):
+        if self.language == "python":
+            return os.path.join('prompts', 'base-atheris-prompt.py')
+        else:
+            raise Exception(f"Language {self.language} not supported.")
 
     def generate_test(self, prompt):
         response = openai.ChatCompletion.create(
@@ -27,11 +28,26 @@ class LangFuzz:
             messages=[
                 {"role": "system", "content": prompt}],
             max_tokens=1000,
-            temperature=0,
+            temperature=0.6,
         )
         return response["choices"][0]["message"]["content"]
 
-    def get_fuzz_files_contents(self, library_name):
+    def create_prompt(self, prompt_template, target_function):
+        prompt = prompt_template + f"{target_function}\n"
+        return prompt
+
+    def create_fuzz_test(self, prompt_template, target_function):
+        prompt = self.create_prompt(prompt_template, target_function)
+        fuzz_test = self.generate_test(prompt)
+        return fuzz_test
+
+    def add_fuzz_files_to_prompt(self, file_data):
+        fuzz_prompt_context = ''
+        for function_name, contents in file_data:
+            fuzz_prompt_context += f"example fuzzer for {function_name}:\n{contents}\n"
+        return fuzz_prompt_context
+    
+    def get_existing_fuzz_file_data(self, library_name):
         engine = get_engine(self.sqlitedb)
         create_tables(engine)
         session = Session(engine)
@@ -40,56 +56,64 @@ class LangFuzz:
 
         file_data = []
         for file in fuzz_files:
-            file_data.append((file.file_name, file.contents))
-
+            file_data.append((file.function_name, file.contents))
         session.close()
 
         return file_data
-
-    def add_fuzz_files_to_prompt(self, file_data):
-        fuzz_prompt_context = ''
-        for file_name, contents in file_data:
-            fuzz_prompt_context += f"example fuzzer for {file_name}:\n{contents}\n"
-        return fuzz_prompt_context
-
-    def get_functions_from_module(self, module):
+    
+    def get_python_functions_and_code_from_library(self, library_name, function_list=None):
         funcs = {}
-        for name, obj in inspect.getmembers(module):
-            if inspect.isfunction(obj):
-                funcs.update({name: (inspect.getsource(obj))})
+        library = importlib.import_module(library_name)
+
+        for _, name, is_pkg in pkgutil.walk_packages(library.__path__):
+            if is_pkg:
+                continue
+            try:
+                module = importlib.import_module(f"{library_name}.{name}")
+
+                for func_name, obj in inspect.getmembers(module):
+                    if inspect.isfunction(obj) and (function_list is None or func_name in function_list):
+                        funcs.update({func_name: inspect.getsource(obj)})
+            except Exception as e:
+                print(f"Error loading module {name}: {e}")
         return funcs
+    
+    def generate_fuzz_tests(self, library_name, function_list=None):
+        fuzz_file_data = self.get_existing_fuzz_file_data(library_name)
+        fuzz_prompt_context = self.add_fuzz_files_to_prompt(fuzz_file_data)
 
-    def create_fuzz_test(self, prompt_template, target_function):
-        prompt = self.create_prompt(prompt_template, target_function)
-        fuzz_test = self.generate_test(prompt)
-        return fuzz_test
-
-    def get_priority_funcs(all_funcs, priority_radon_funcs):
-        funcs = {}
-        for func, contents in all_funcs.items():
-            if func in priority_radon_funcs:
-                funcs.update({func: contents})
-        return funcs
-
-    def generate_fuzz_tests(self, library_name, base_template_path):
-        base_template = open(base_template_path, "r").read()
-        file_data = self.get_fuzz_files_contents(library_name)
-        fuzz_prompt_context = self.add_fuzz_files_to_prompt(file_data)
-
+        base_template = open(self.base_prompt_path, "r").read()
         prompt_template = base_template + fuzz_prompt_context + "write an atheris fuzzer for the following function:\n"
 
-        all_funcs = self.get_functions_from_module(library_name)
-        print(all_funcs)
-        priority_radon_funcs = langfuzz_recon.radon_metrics(library_name)
+        if self.language == "python":
+            function_info = self.get_python_functions_and_code_from_library(library_name, function_list)
+        else:
+            raise Exception(f"Language {self.language} not supported.")
 
-        funcs = self.get_priority_funcs(all_funcs, priority_radon_funcs)
-
-        for func, contents in funcs.items():
+        for func, contents in function_info.items():
             fuzz_test = self.create_fuzz_test(prompt_template, contents)
-            print("=" * 50)
             print(fuzz_test)
 
-#test
+
+    def get_radon_functions_from_db(self, lib_name, score=None):
+        engine = get_engine(self.sqlitedb)
+        session = Session(engine)
+
+        query = session.query(LibraryFile.function_name).filter(
+            LibraryFile.library_name == lib_name,
+            LibraryFile.type == "radon"
+        )
+
+        if score is not None:
+            if isinstance(score, str):
+                score = [score]
+            query = query.filter(LibraryFile.complexity_score.in_(score))
+
+        function_names = [result[0] for result in query.all()]
+
+        session.close()
+        return function_names
+
 if __name__ == "__main__":
     http_libs = {
         'urllib3': {
@@ -111,15 +135,12 @@ if __name__ == "__main__":
     }
 
     # Initialize LangFuzz object
-    langfuzz = LangFuzz(http_libs, 'langfuzz.db')
+    langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
-    # Initialize LangFuzzRecon object
-    langfuzz_recon = LangFuzzRecon('github_repos', 'langfuzz.db')
-    # Run recon
-    #langfuzz_recon.run_recon()
-
-    # Generate fuzz tests for urllib3
-    lib = 'urllib3'
-    prompt_path = "../prompts/base-atheris-prompt.py"
-    langfuzz.generate_fuzz_tests(lib, prompt_path)
-
+    # This defines the score of radon complexity to pull from the database
+    # A and B are the highest scores, E and F are the lowest scores
+    radon_score = ['C', 'D', 'E', 'F']
+    # radon_score is optional, if you don't pass it, it will pull all the functions
+    priority_funcs = LangFuzz.get_radon_functions_from_db('urllib3', radon_score)
+    print(priority_funcs)
+    langfuzz.generate_fuzz_tests('urllib3', priority_funcs)

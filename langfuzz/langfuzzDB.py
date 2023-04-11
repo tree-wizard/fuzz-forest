@@ -19,12 +19,12 @@ class LibraryFile(Base):
     id = Column(Integer, primary_key=True)
     library_name = Column(String)
     file_name = Column(String)
+    function_name = Column(String)
     contents = Column(Text)
-    generated = Column(Boolean)
     fuzz_test = Column(Boolean)
     language = Column(String)
-    complexity = Column(String)
-    type = Column(String)
+    complexity_score = Column(String)
+    type = Column(String) #fuzzer, test, radon, etc.
 
 class GeneratedFile(Base):
     __tablename__ = "generated_files"

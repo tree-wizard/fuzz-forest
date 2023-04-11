@@ -1,22 +1,32 @@
 import os
 import git
-import inspect
-import importlib
-import pkgutil
-import sys
 import subprocess
+import sqlite3
 
 from .langfuzzDB import Library, LibraryFile, create_tables, get_engine
 from sqlalchemy.orm import Session
 
 class LangFuzzRecon:
-    def __init__(self, sqlitedb, repo_path):
+    def __init__(self, sqlitedb, github_repo_path, target_libraries, language):
         self.sqlitedb = sqlitedb
-        self.repo_path = repo_path
-        os.makedirs(repo_path) if not os.path.exists(repo_path) else None
+        self.repo_path = github_repo_path
+        self.language = language
+        os.makedirs(github_repo_path) if not os.path.exists(github_repo_path) else None
 
+        # Create the SQLite database file if it doesn't exist
+        if not os.path.exists(sqlitedb):
+            with sqlite3.connect(sqlitedb) as conn:
+                pass
+        engine = get_engine(sqlitedb)
+        create_tables(engine)
+
+        self.save_library_info(target_libraries)
         # Download the oss-fuzz repository
         self.download_oss_fuzz_repo()
+        # download the github repositories
+        self.download_github_repos(target_libraries)
+        self.get_fuzz_files(target_libraries)
+        self.radon_analysis(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -43,35 +53,70 @@ class LangFuzzRecon:
             else:
                 print(f"{lib_name} already exists, skipping download.")
 
-    def get_fuzz_files(self, lib_dict):
-        fuzz_files = {}
-        for key in lib_dict:
-            path = self.repo_path + '/oss-fuzz/projects/' + str(key)
-            fuzz_files[str(key)] = []
-        # if the path exists, find all fuzz files
-            if os.path.exists(path):
-                for root, dirs, files in os.walk(path):
-                    for file in files:
-                        if file.startswith("fuzz") and file.endswith(".py"):
-                            fuzz_files[key].append(os.path.join(root, file))
-            else:
-                print(f"{key} Repo does not exist")
-        return(fuzz_files)
+    def get_fuzz_files(self, libraries_info):
+        for key in libraries_info:
+            self.find_fuzz_in_oss_fuzz(key)
+            self.find_fuzz_in_repo(key)
 
-    #save library data to database
-    def save_libs(self, lib_dict, lang):
+    def find_fuzz_in_oss_fuzz(self, library_name):
+        path = os.path.join(self.repo_path, 'oss-fuzz', 'projects', library_name)
+        if os.path.exists(path):
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if file.startswith("fuzz") and file.endswith(".py"):
+                        file_path = os.path.join(root, file)
+                        self.save_fuzz_file(library_name, file_path, "fuzzer")
+        else:
+            print(f"{library_name} Repo does not exist in oss-fuzz")
+
+    def find_fuzz_in_repo(self, library_name):
+        path = os.path.join(self.repo_path, library_name)
+        if os.path.exists(path):
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if 'fuzz' in file and file.endswith(".py"):
+                        file_path = os.path.join(root, file)
+                        self.save_fuzz_file(library_name, file_path, "fuzzer")
+        else:
+            print(f"{library_name} Repo does not exist")
+
+    def save_fuzz_file(self, library_name, file_path, file_type):
         engine = get_engine(self.sqlitedb)
         create_tables(engine)
         session = Session(engine)
 
-        for library_name, lib_data in lib_dict.items():
-            github_url = lib_data['github']
-            docs_url = lib_data['docs']
-            language = lang
+        file_name = os.path.basename(file_path)
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+        first_source_line_index = next((index for index, line in enumerate(lines) if line.startswith("import")), 0)
+        contents = "".join(lines[first_source_line_index:])
+
+        existing_file = session.query(LibraryFile).filter_by(library_name=library_name, file_name=file_name).first()
+        if existing_file is None:
+            lib_file = LibraryFile(library_name=library_name, file_name=file_name, contents=contents, fuzz_test=True, language=self.language, type=file_type)
+            session.add(lib_file)
+        else:
+            print(f"File {file_name} already exists for library {library_name}, skipping.")
+        
+        session.commit()
+        session.close()
+
+    def save_library_info(self, libraries_info):
+        engine = get_engine(self.sqlitedb)
+        create_tables(engine)
+        session = Session(engine)
+
+        for library_name, lib_data in libraries_info.items():
+            if isinstance(lib_data, str):
+                github_url = lib_data
+                docs_url = None
+            elif isinstance(lib_data, dict):
+                github_url = lib_data['github']
+                docs_url = lib_data.get('docs', None)
 
             existing_lib = session.query(Library).filter_by(library_name=library_name).first()
             if existing_lib is None:
-                lib = Library(library_name=library_name, github_url=github_url, docs_url=docs_url, language=language)
+                lib = Library(library_name=library_name, github_url=github_url, docs_url=docs_url, language=self.language)
                 session.add(lib)
             else:
                 print(f"Library {library_name} already exists, skipping.")
@@ -79,61 +124,15 @@ class LangFuzzRecon:
         session.commit()
         session.close()
 
-    def save_fuzz_files(self, fuzz_files, lang):
-        engine = get_engine(self.sqlitedb)
-        create_tables(engine)
-        session = Session(engine)
+    def run_radon_tool(self, library_name):
+        src_path = os.path.join(self.repo_path, library_name)
+        radon_file_path = os.path.join(self.repo_path, "generated_files", f"{library_name}_functions.txt")
 
-        for library_name, file_list in fuzz_files.items():
-            for file_path in file_list:
-                file_name = os.path.basename(file_path)
-                with open(file_path, 'r') as f:
-                    lines = f.readlines()
-                first_source_line_index = next((index for index, line in enumerate(lines) if line.startswith("import")), 0)
-                contents = "".join(lines[first_source_line_index:])
+        os.makedirs(os.path.join(self.repo_path, "generated_files"), exist_ok=True)
 
-                existing_file = session.query(LibraryFile).filter_by(library_name=library_name, file_name=file_name).first()
-                if existing_file is None:
-                    lib_file = LibraryFile(library_name=library_name, file_name=file_name, contents=contents, generated=False, fuzz_test=True, type="fuzzer")
-                    session.add(lib_file)
-                else:
-                    print(f"File {file_name} already exists for library {library_name}, skipping.")
-        session.commit()
-        session.close()
-
-    def save_recon_data(self, libs, fuzz_files, lang):
-        self.save_libs(libs, lang)
-        self.save_fuzz_files(fuzz_files, lang)
-
-    def get_functions_and_code_from_library(self, library_name):
-        funcs = {}
-        library = importlib.import_module(library_name)
-    # Iterate through all the modules within the library
-        for _, name, is_pkg in pkgutil.walk_packages(library.__path__):
-            if is_pkg:
-                continue
-            try:
-                module = importlib.import_module(f"{library_name}.{name}")
-
-                for func_name, obj in inspect.getmembers(module):
-                    if inspect.isfunction(obj):
-                        funcs.update({func_name: inspect.getsource(obj)})
-            except Exception as e:
-                print(f"Error loading module {name}: {e}")
-        return funcs
-
-    def run_radon_analysis(self, library_name):
-    # Define the paths for the library source and the output file
-        src_path = os.path.join(self.repo_path, library_name, "src")
-        radon_file_path = os.path.join("generated_files", f"{library_name}_functions.txt")
-    
-    # Make sure the output directory exists
-        os.makedirs("generated_files", exist_ok=True)
-
-    # Run the Radon analysis and save the output to a file
         with open(radon_file_path, "w") as radon_file:
             radon_output = subprocess.run(
-                ["radon", "cc", src_path],
+                ["radon", "cc", "--exclude", "*test*", src_path],
                 stdout=subprocess.PIPE,
                 text=True,
                 check=True
@@ -141,10 +140,10 @@ class LangFuzzRecon:
             grep_output = subprocess.run(
                 ["grep", "-E", r"^\s*F\s+"],
                 input=radon_output.stdout,
-              stdout=subprocess.PIPE,
-             text=True
+                stdout=subprocess.PIPE,
+                text=True
             )
-        
+
             if grep_output.returncode == 0:
                 radon_file.write(grep_output.stdout)
             elif grep_output.returncode == 1:
@@ -154,62 +153,56 @@ class LangFuzzRecon:
 
         return radon_file_path
 
-    def parse_radon_analysis(self, radon_file_path):
-        function_list = []
+    def parse_save_radon_analysis(self, radon_file_path, library_name):
         with open(radon_file_path, "r") as radon_file:
-            for line in radon_file:  # Iterate through the lines of the file
-                line = line.strip()  # Call strip() on the line, not the file object
-                parts = line.split()
-                function_name = parts[2]
+            file_name = None
+            for line in radon_file:
+                line = line.strip()
+                if line.endswith(".py"):
+                    file_name = line
+                else:
+                    parts = line.split()
+                    if parts[0] == 'F':
+                        function_name = parts[2]
+                        if not function_name.startswith('_'):
+                            score = parts[-1]
+                            self.save_radon_result(library_name, file_name, function_name, score)
 
-                if not function_name.startswith('_'):
-                    score = parts[-1]
-                    function_list.append((function_name, score))
-        return sorted(function_list, key=lambda x: x[1])
+    def save_radon_result(self, library_name, file_name, function_name, complexity_score):
+        engine = get_engine(self.sqlitedb)
+        create_tables(engine)
+        session = Session(engine)
 
-    def radon_complexity_filter(self, function_list):
-        filtered_function_list = []
-        for function_name, score in function_list:
-            if score not in ('A', 'B'):
-                filtered_function_list.append(function_name)
-        return filtered_function_list
+        radon_result = LibraryFile(
+            library_name=library_name,
+            file_name=file_name,
+            function_name=function_name,
+            fuzz_test=False,
+            language=self.language,
+            complexity_score=complexity_score,
+            type="radon"
+        )
+        session.add(radon_result)
+        session.commit()
+        session.close()
 
-    def radon_metrics(self, library_name):
-        file_path = self.run_radon_analysis(library_name)
-        function_list = self.parse_radon_analysis(file_path)
-        return self.radon_complexity_filter(function_list)
-
-
+    def radon_analysis(self, libraries_info):
+        for library_name in libraries_info.keys():
+            file_path = self.run_radon_tool(library_name)
+            self.parse_save_radon_analysis(file_path, library_name)
 
 def main():
-    repo_path = "../github_repos"
-    sqlitedb = "langfuzz.db"
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    repo_path = os.path.join(current_directory, 'github_repos')
+    sqlitedb = os.path.join(current_directory, 'langfuzz.db')
     http_libs = {
-     'urllib3': {
-    'github': 'https://github.com/urllib3/urllib3',
-    'docs': 'https://urllib3.readthedocs.io/en/stable/'
-    }}
-    utils = {
-    'oss-fuzz': {
-	 'github': 'https://github.com/google/oss-fuzz'
-	 }}
-    libs = [http_libs, utils]
+        'urllib3': {
+            'github': 'https://github.com/urllib3/urllib3',
+            'docs': 'https://urllib3.readthedocs.io/en/stable/'
+        }
+    }
 
-    langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path)
-    langfuzz_recon.download_github_repos(libs)
-    fuzz_files = langfuzz_recon.get_fuzz_files(http_libs)
-    langfuzz_recon.save_recon_data(http_libs, fuzz_files, 'python')
-
-    for library_name, lib_data in http_libs.items():
-        functions = langfuzz_recon.get_functions_and_code_from_library(library_name)
-        #print(functions)
-
-      #get functions with high cyclomatic complexity
-    complex_radon_funcs = langfuzz_recon.radon_metrics('urllib3')
-    
-
-    priority_funcs = ['create_urllib3_context', 'ssl_wrap_socket','match_hostname', 'parse_url']
-
+    langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 
 if __name__ == "__main__":
     main()
