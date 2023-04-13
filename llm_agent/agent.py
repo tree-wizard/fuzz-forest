@@ -3,14 +3,16 @@ import re
 
 from pydantic import BaseModel
 from typing import List, Dict, Tuple
-from llm_agents.llm import ChatLLM
-from llm_agents.tools.base import ToolInterface
-from llm_agent.tools.python_repl import PythonREPLTool
+
+from llm_agent.llm import ChatLLM
+from llm_agent.tools.base import ToolInterface
+from llm_agent.tools.python_repl import PythonREPLTool 
+from llm_agent.tools.search import SerpAPITool
 
 FINAL_ANSWER_TOKEN = "Final Answer:"
 OBSERVATION_TOKEN = "Observation:"
 THOUGHT_TOKEN = "Thought:"
-PROMPT_TEMPLATE = """Today is {today} and you can use tools to get new information. Answer the question as best as you can using the following tools: 
+PROMPT_TEMPLATE = """Today is {today} and you can use tools to get new information. Review and fix the provided python code. Ignore coverage metrics. Your task is to run the code, If the code runs return Yes, else fix and return the code.You can using the following tools: 
 
 {tool_description}
 
@@ -22,8 +24,8 @@ Action: the action to take, exactly one element of [{tool_names}]
 Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation repeats N times, use it until you are sure of the answer)
-Thought: I now know the final answer
-Final Answer: your final answer to the original input question
+Thought: I now have working code or know the final answer
+Final Answer: your final answer to the original input question. Should be the last working and properly formatted python code with no extra text or 'Yes' if the code to runs correctly.
 
 Begin!
 
@@ -97,11 +99,11 @@ continue
 elif fizzbuz % 3 == 0:
 print("fizz")
 continue
-elif fizzbuzz % 5 == 0:
+elif fizbuzz % 5 == 0:
 print("buzz")
 continue
 print(fizzbuzz)
 """
-  agent = Agent(llm=ChatLLM(), tools=[PythonREPLTool()])
+  agent = Agent(llm=ChatLLM(), tools=[PythonREPLTool(), SerpAPITool()])
   result = agent.run(python)
-  print(f"Final answer is {result}")
+  print(result)

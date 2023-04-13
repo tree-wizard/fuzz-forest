@@ -32,13 +32,17 @@ class GeneratedFile(Base):
     id = Column(Integer, primary_key=True)
     library_name = Column(String)
     file_name = Column(String)
+    function_name = Column(String)
     contents = Column(Text)
     runs = Column(Boolean)
     fuzz_test = Column(Boolean)
     type = Column(String)
-    coverage = Column(Text)
+    coverage = Column(Integer)
     cycles = Column(Integer)
+    run_output = Column(Text)
     tokens = Column(Integer)
+    crash = Column(Boolean)
+    exception= Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)

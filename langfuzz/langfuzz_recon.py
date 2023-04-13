@@ -7,11 +7,11 @@ from .langfuzzDB import Library, LibraryFile, create_tables, get_engine
 from sqlalchemy.orm import Session
 
 class LangFuzzRecon:
-    def __init__(self, sqlitedb, github_repo_path, target_libraries, language):
+    def __init__(self, sqlitedb, repo_path, target_libraries, language):
         self.sqlitedb = sqlitedb
-        self.repo_path = github_repo_path
+        self.repo_path = repo_path
         self.language = language
-        os.makedirs(github_repo_path) if not os.path.exists(github_repo_path) else None
+        os.makedirs(repo_path) if not os.path.exists(repo_path) else None
 
         # Create the SQLite database file if it doesn't exist
         if not os.path.exists(sqlitedb):
@@ -128,7 +128,7 @@ class LangFuzzRecon:
         src_path = os.path.join(self.repo_path, library_name)
         radon_file_path = os.path.join(self.repo_path, "generated_files", f"{library_name}_functions.txt")
 
-        os.makedirs(os.path.join(self.repo_path, "generated_files"), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, "generated_files", "radon"), exist_ok=True)
 
         with open(radon_file_path, "w") as radon_file:
             radon_output = subprocess.run(
@@ -173,17 +173,26 @@ class LangFuzzRecon:
         create_tables(engine)
         session = Session(engine)
 
-        radon_result = LibraryFile(
-            library_name=library_name,
-            file_name=file_name,
-            function_name=function_name,
-            fuzz_test=False,
-            language=self.language,
-            complexity_score=complexity_score,
-            type="radon"
-        )
-        session.add(radon_result)
-        session.commit()
+        existing_entry = session.query(LibraryFile).filter(
+            LibraryFile.library_name == library_name,
+          LibraryFile.file_name == file_name,
+            LibraryFile.function_name == function_name,
+            LibraryFile.type == "radon"
+        ).first()
+    
+        if not existing_entry:
+            radon_result = LibraryFile(
+                library_name=library_name,
+                file_name=file_name,
+                function_name=function_name,
+                fuzz_test=False,
+                language=self.language,
+                complexity_score=complexity_score,
+                type="radon"
+            )
+            session.add(radon_result)
+            session.commit()
+        
         session.close()
 
     def radon_analysis(self, libraries_info):

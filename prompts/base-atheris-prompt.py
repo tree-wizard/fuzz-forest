@@ -1,8 +1,13 @@
 # Python fuzz tests with atheris library
 # https://github.com/google/atheris
-# Generate a fuzz test for a Python function using the atheris library.
+# Generic fuzz test for a Python function using the atheris library:
 import atheris
 import sys
+# This tells Atheris to instrument all functions in the `struct` and
+# `example_library` modules.
+with atheris.instrument_imports():
+  import struct
+  import example_library
 def TestOneInput(data):
 #The entry point for our fuzzer.
 #  This is a callback that will be repeatedly invoked with different arguments
@@ -43,8 +48,7 @@ fdp = atheris.FuzzedDataProvider(data)
 # PickValueInList(l: list): Given a list, pick a random value.
 # ConsumeBool(): Consume either True or False.
 
-# An example of fuzzing with a custom mutator in Python
-
+# An example of fuzzing with a custom mutator in Python:
 import atheris
 with atheris.instrument_imports():
   import sys
@@ -81,4 +85,5 @@ if __name__ == '__main__':
     atheris.Setup(sys.argv, TestOneInput)
   else:
     atheris.Setup(sys.argv, TestOneInput, custom_mutator=CustomMutator)
+    
   atheris.Fuzz()

@@ -5,7 +5,7 @@ from io import StringIO
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
-from llm_agents.tools.base import ToolInterface
+from llm_agent.tools.base import ToolInterface
 
 
 class PythonREPL(BaseModel):

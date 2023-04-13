@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from llm_agents.tools.base import ToolInterface
+from llm_agent.tools.base import ToolInterface
 
 
 ENDPOINT = "https://hn.algolia.com/api/v1/search_by_date"

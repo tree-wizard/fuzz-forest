@@ -1,5 +1,6 @@
 # Ignore 'github_repos/' directory
 github_repos/
+saved_repos/
 
 # Ignore '__pycache__' directories
 __pycache__/

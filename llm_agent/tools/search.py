@@ -4,7 +4,7 @@ import os
 import sys
 from typing import Any
 
-from llm_agents.tools.base import ToolInterface
+from llm_agent.tools.base import ToolInterface
 
 from serpapi import GoogleSearch
 
