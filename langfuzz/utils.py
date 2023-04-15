@@ -39,14 +39,18 @@ def num_tokens_from_string(string: str) -> int:
     return num_tokens
 
 # change to get_lib_fuzz_tests_from_db, add get_all_fuzz_tests_from_db, move to utils
-def get_fuzz_tests_from_db(sqlitedb, library_name):
+def get_fuzz_tests_from_db(sqlitedb, library_name, runs=None):
     engine = get_engine(sqlitedb)
     create_tables(engine)
     session = Session(engine)
     query = session.query(GeneratedFile.id, GeneratedFile.file_name, GeneratedFile.function_name, GeneratedFile.contents).filter(
         GeneratedFile.library_name == library_name,
         GeneratedFile.fuzz_test == True
-        )
+    )
+
+    if runs is not None:
+        query = query.filter(GeneratedFile.runs == runs)
+
     fuzz_tests = query.all()
     session.close()
     return fuzz_tests

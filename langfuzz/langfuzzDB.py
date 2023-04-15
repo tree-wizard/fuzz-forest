@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
 
@@ -24,7 +24,7 @@ class LibraryFile(Base):
     fuzz_test = Column(Boolean)
     language = Column(String)
     complexity_score = Column(String)
-    type = Column(String) #fuzzer, test, radon, etc.
+    type = Column(String) #fuzzer, test, source, etc.
 
 class GeneratedFile(Base):
     __tablename__ = "generated_files"
@@ -50,3 +50,15 @@ def create_tables(engine):
 def get_engine(db_path):
     engine = create_engine(f"sqlite:///{db_path}")
     return engine
+
+def get_functions_from_db(sqlitedb, library_name, function_list=None):
+    engine = get_engine(sqlitedb)
+    session = Session(engine)
+
+    if function_list is not None:
+        functions = session.query(LibraryFile).filter_by(library_name=library_name).filter(LibraryFile.function_name.in_(function_list)).all()
+    else:
+        functions = session.query(LibraryFile).filter_by(library_name=library_name).all()
+
+    session.close()
+    return functions

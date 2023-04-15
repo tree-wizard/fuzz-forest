@@ -31,24 +31,72 @@ http_libs = {
         'docs': 'https://docs.twisted.org/en/stable/'
  }}
 
-# Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
+libs = {
+    'urllib3': {
+        'github': 'https://github.com/urllib3/urllib3',
+        'docs': 'https://urllib3.readthedocs.io/en/stable/'
+    },
+    'requests': {
+        'github': 'https://github.com/psf/requests',
+        'docs': 'https://requests.readthedocs.io/en/latest/'
+    },
+    'aiohttp': {
+        'github': 'https://github.com/aio-libs/aiohttp/',
+        'docs': 'https://docs.aiohttp.org/en/stable/'
+    },
+    'twisted': {
+        'github': 'https://github.com/twisted/twisted',
+        'docs': 'https://docs.twisted.org/en/stable/'
+    },
+    'sqlalchemy': 'https://github.com/sqlalchemy/sqlalchemy',
+    'PIL': 'https://github.com/python-pillow/Pillow',
+    'babel': 'https://github.com/python-babel/babel',
+    'yaml': 'https://github.com/yaml/pyyaml',
+    'cryptography': {
+        'github': 'https://github.com/pyca/cryptography',
+        'docs': 'https://cryptography.io/en/latest/'
+    },
+    'botocore': 'https://github.com/boto/botocore',
+    'boto3': 'https://github.com/boto/boto3',
+    'rq': 'https://github.com/rq/rq'}
 
-langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
+
+
+
 
 # radon_score is optional, if you don't pass it, it will pull all the functions
-#radon_score = ['C', 'D', 'E', 'F']
-#priority_funcs = langfuzz.get_radon_functions_from_db('urllib3', radon_score)
-priority_funcs = ['create_urllib3_context', 'ssl_wrap_socket','match_hostname', 'parse_url']
 
+#priority_funcs = langfuzz.get_radon_functions_from_db('urllib3', radon_score)
 # Creates the fuzzers and saves in db
-langfuzz.generate_fuzz_tests(lib, priority_funcs)
-langfuzz.initial_fuzz_analysis(lib)
+#langfuzz.generate_fuzz_tests(lib, priority_funcs)
+#langfuzz.initial_fuzz_analysis(lib)
 #langfuzz.extended_fuzz_analysis(lib)
 
+# Recon to create the database with fuzzing data.
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libs, 'python')
+# set up the langfuzz main class
+langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
+# radon_score is optional, if you don't pass it, it will pull all the functions
+radon_score = ['C', 'D', 'E', 'F']
 
+# First pass
+for library_name in libs.keys():
+    print(library_name)
+    priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    langfuzz.generate_fuzz_tests(library_name, priority_funcs)
+    langfuzz.initial_fuzz_analysis(library_name)
 
+# Second pass
+#for library_name in libs.keys():
+#    print(library_name)
+#    langfuzz.fix_fuzz_tests(library_name) 
+#    langfuzz.extended_fuzz_analysis(library_name, 200)
 
+# Analysis Pass
+#for library_name in libs.keys():
+#    print(library_name)
+#    langfuzz.analyze_fuzz_coverage(library_name)
+#    langfuzz.triage_fuzz_crashes(library_name) 
 
 python = """for fizzbuzz in range(51):
 if fizzbuzz % 3 == 0 and fizzbuzz % 5 == 0:

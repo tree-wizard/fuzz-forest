@@ -1,6 +1,6 @@
 # Python fuzz tests with atheris library
 # https://github.com/google/atheris
-# Generic fuzz test for a Python function using the atheris library:
+# Generic atheris fuzz test example:
 import atheris
 import sys
 # This tells Atheris to instrument all functions in the `struct` and
@@ -21,13 +21,14 @@ def TestOneInput(data):
   example_library.CodeBeingFuzzed(number)
 atheris.Setup(sys.argv, TestOneInput)
 atheris.Fuzz()
+#
 # When fuzzing Python, Atheris will report a failure if the Python code under test throws an uncaught exception.
 # Atheris FuzzedDataProvider API Reference
 # The FuzzedDataProvider is a class that provides a number of functions to consume bytes from the input and convert them into other forms.
 # To construct the FuzzedDataProvider, use the following code:
 fdp = atheris.FuzzedDataProvider(data)
 # The FuzzedDataProvider provides the following functions, arguments are required unless otherwise specified:
-# default arguments for int should be sys.maxsize
+# default arguments for int should be sys.maxsize like ConsumeInt(sys.maxsize)
 # ConsumeBytes(count: int): Consume count bytes.
 # ConsumeUnicode(count: int): Consume unicode characters. Might contain surrogate pair characters, which according to the specification are invalid in this situation. However, many core software tools (e.g. Windows file paths) support them, so other software often needs to too.
 # ConsumeUnicodeNoSurrogates(count: int): Consume unicode characters, but never generate surrogate pair characters.
@@ -47,7 +48,7 @@ fdp = atheris.FuzzedDataProvider(data)
 # ConsumeFloatListInRange(count: int, min: float, max: float): Consume a list of count floats in the range [min, max].
 # PickValueInList(l: list): Given a list, pick a random value.
 # ConsumeBool(): Consume either True or False.
-
+Make sure all libraries used in fuzz test are instrumented.
 # An example of fuzzing with a custom mutator in Python:
 import atheris
 with atheris.instrument_imports():
