@@ -1,20 +1,19 @@
 import os
 import openai
-import inspect
 import importlib
 import importlib.util
-import pkgutil
 import re
 import subprocess
 
 from sqlalchemy.orm import Session
 
 from .langfuzz_recon import LangFuzzRecon
-from .langfuzzDB import GeneratedFile, Library, LibraryFile, create_tables, get_engine, get_functions_from_db
+from .langfuzzDB import Database, GeneratedFile, LibraryFile, Library, get_engine
 from .utils import run_initial_atheris_fuzzer, num_tokens_from_string, get_fuzz_tests_from_db
 
 class LangFuzz:
     def __init__(self, sqlitedb, language, base_prompt_path):
+        self.db = Database(sqlitedb)
         self.sqlitedb = sqlitedb
         self.language = language
         self.base_prompt_path = base_prompt_path #replace with find_base_prompt_path()
@@ -36,38 +35,23 @@ class LangFuzz:
         return response["choices"][0]["message"]["content"]
 
     def save_fuzz_test_to_db(self, library_name, function_name, fuzz_test_code):
-        engine = get_engine(self.sqlitedb)
-        create_tables(engine)
-        session = Session(engine)
-
         file_name = 'fuzz_' + function_name + '.py'
         tokens = num_tokens_from_string(fuzz_test_code)
+        with self.db as db:
+            db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-        existing_file = session.query(GeneratedFile).filter(
-            GeneratedFile.library_name == library_name,
-            GeneratedFile.file_name == file_name
-        ).first()
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None):
+        with self.db as db:
+            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash)
 
-        if existing_file is None:
-            generated_file = GeneratedFile(
-                library_name=library_name,
-                file_name=file_name,
-                function_name=function_name,
-                contents=fuzz_test_code,
-                runs=False,
-                fuzz_test=True,
-                type='fuzz',
-                coverage=None,
-                cycles=None,
-                tokens=tokens,
-                exception=False
-            )
-
-            session.add(generated_file)
-            session.commit()
-
-        session.close()
-
+    def get_existing_fuzz_file_data(self, library_name):
+        with self.db as db:
+            return db.get_existing_fuzz_file_data(library_name)
+        
+    def get_functions_that_contain_string(self, library_name, search_string):
+        with self.db as db:
+            return db.get_functions_that_contain_string(library_name, search_string)
+        
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
            directive = "Return only valid, formated python code, no text. Write an atheris fuzz test for the following function:\n"
@@ -96,27 +80,6 @@ class LangFuzz:
        prompt = base_template + directive + library_name + "." + function_name
 
        return prompt
-
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None):
-        engine = get_engine(self.sqlitedb)
-        session = Session(engine)
-    
-        fuzz_test = session.query(GeneratedFile).filter(GeneratedFile.id == id).first()
-    
-        if runs is not None:
-            fuzz_test.runs = runs
-        if run_output is not None:
-            fuzz_test.run_output = run_output
-        if coverage is not None:
-            fuzz_test.coverage = coverage
-        if exception is not None:
-            fuzz_test.exception = exception
-        if crash is not None:
-            fuzz_test.crash = crash
-    
-        session.commit()
-        session.close()
-
 
     def extended_fuzz_analysis(self, library_name, time=20000):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
@@ -174,20 +137,6 @@ class LangFuzz:
             fuzz_prompt_context += f"example fuzzer for {function_name}:\n{contents}\n"
         return fuzz_prompt_context
     
-    def get_existing_fuzz_file_data(self, library_name):
-        engine = get_engine(self.sqlitedb)
-        create_tables(engine)
-        session = Session(engine)
-
-        fuzz_files = session.query(LibraryFile).filter(LibraryFile.library_name == library_name, LibraryFile.fuzz_test == True).all()
-
-        file_data = []
-        for file in fuzz_files:
-            file_data.append((file.function_name, file.contents))
-        session.close()
-
-        return file_data
-    
     def install_package(self, package_name):
         subprocess.check_call(["python", "-m", "pip", "install", package_name])
 
@@ -195,7 +144,7 @@ class LangFuzz:
         spec = importlib.util.find_spec(package_name)
         return spec is not None
 
-    def get_python_functions_and_code_from_library(self, library_name, function_list=None):
+    """def get_python_functions_and_code_from_library(self, library_name, function_list=None):
         funcs = {}
 
         if not self.is_package_installed(library_name):
@@ -220,20 +169,18 @@ class LangFuzz:
                         funcs.update({func_name: inspect.getsource(obj)})
             except Exception as e:
                 print(f"Error loading module {name}: {e}")
-        return funcs
+        return funcs"""
     
     def generate_fuzz_tests(self, library_name, function_list=None):
         base_template = open(self.base_prompt_path, "r").read()
         fuzz_file_data = self.get_existing_fuzz_file_data(library_name)
         fuzzer_context = self.add_fuzz_files_to_prompt(fuzz_file_data)
-        functions = get_functions_from_db(self.sqlitedb, library_name, function_list)
-    
-        engine = get_engine(self.sqlitedb)
-        session = Session(engine)
-        # Above was setup, below we create the full prompt, generate the fuzz test, and save it to the db
+        with self.db as db:
+            functions = db.get_functions_from_db(self.sqlitedb, library_name, function_list)
+                # Above was setup, below we create the full prompt, generate the fuzz test, and save it to the db
         for function in functions:
             complete_prompt = self.create_prompt(base_template, fuzzer_context, library_name, function.function_name, function.function_code)
-            if  session.query(GeneratedFile).filter(GeneratedFile.library_name == library_name, GeneratedFile.function_name == function.function_name).first() is None:
+            if not self.db.generated_file_exists(library_name, function.function_name):
                 fuzz_test_code = self.generate_fuzz_code(complete_prompt)
                 self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
                 print("=" * 50)

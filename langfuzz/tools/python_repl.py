@@ -5,7 +5,7 @@ from io import StringIO
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
-from llm_agent.tools.base import ToolInterface
+from tools.base import ToolInterface
 
 
 class PythonREPL(BaseModel):
@@ -63,7 +63,7 @@ class PythonREPLFuzzTool(PythonREPLTool):
         "Input should be a valid python script containing Atheris fuzz test code."
     )
 
-    def use(self, input_text: str) -> str:
+    def run_fuzz_test(self, input_text: str) -> str:
         input_text = input_text.strip().strip("```")
         with open("fuzz_test.py", "w") as f:
             f.write(input_text)
@@ -193,12 +193,12 @@ if __name__ == "__main__":
 """
 
     fuzz_tool = PythonREPLFuzzTool()
-    result = fuzz_tool.use(code)
-    result1 = fuzz_tool.use(code1)
-    result2 = fuzz_tool.use(code2)
-    result3 = fuzz_tool.use(code3)
-    result4 = fuzz_tool.use(code4)
-    result5 = fuzz_tool.use(code5)
+    result = fuzz_tool.run_fuzz_test(code)
+    result1 = fuzz_tool.run_fuzz_test(code1)
+    result2 = fuzz_tool.run_fuzz_test(code2)
+    result3 = fuzz_tool.run_fuzz_test(code3)
+    result4 = fuzz_tool.run_fuzz_test(code4)
+    result5 = fuzz_tool.run_fuzz_test(code5)
     print("RESULT")
     print(result)
     print("RESULT1")
