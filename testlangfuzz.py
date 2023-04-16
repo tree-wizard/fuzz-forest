@@ -79,12 +79,16 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional, if you don't pass it, it will pull all the functions
 radon_score = ['C', 'D', 'E', 'F']
 
+
 # First pass
 for library_name in libs.keys():
     print(library_name)
     priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
     langfuzz.generate_fuzz_tests(library_name, priority_funcs)
     langfuzz.initial_fuzz_analysis(library_name)
+
+    langfuzz.fix_fuzz_tests(library_name)
 
 # Second pass
 #for library_name in libs.keys():
@@ -92,11 +96,13 @@ for library_name in libs.keys():
 #    langfuzz.fix_fuzz_tests(library_name) 
 #    langfuzz.extended_fuzz_analysis(library_name, 200)
 
+
+
 # Analysis Pass
 #for library_name in libs.keys():
 #    print(library_name)
 #    langfuzz.analyze_fuzz_coverage(library_name)
-#    langfuzz.triage_fuzz_crashes(library_name) 
+#     langfuzz.triage_fuzz_crashes(library_name) 
 
 python = """for fizzbuzz in range(51):
 if fizzbuzz % 3 == 0 and fizzbuzz % 5 == 0:

@@ -121,6 +121,23 @@ class Database:
             ).first()
             return existing_file is not None
 
+    def get_radon_functions_from_db(self, lib_name, score=None):
+        with Session(self.engine) as session:
+            query = session.query(LibraryFile.function_name).filter(
+                LibraryFile.library_name == lib_name,
+                LibraryFile.type == "radon"
+            )
+
+            if score is not None:
+                if isinstance(score, str):
+                    score = [score]
+                query = query.filter(LibraryFile.complexity_score.in_(score))
+
+            function_names = [result[0] for result in query.all()]
+
+        return function_names
+
+
     def __enter__(self):
         return self
 

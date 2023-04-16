@@ -187,23 +187,8 @@ class LangFuzz:
                 print(function.function_name)
 
     def get_radon_functions_from_db(self, lib_name, score=None):
-        engine = get_engine(self.sqlitedb)
-        session = Session(engine)
-
-        query = session.query(LibraryFile.function_name).filter(
-            LibraryFile.library_name == lib_name,
-            LibraryFile.type == "radon"
-        )
-
-        if score is not None:
-            if isinstance(score, str):
-                score = [score]
-            query = query.filter(LibraryFile.complexity_score.in_(score))
-
-        function_names = [result[0] for result in query.all()]
-
-        session.close()
-        return function_names
+        with self.db as db:
+            return db.get_radon_functions_from_db(lib_name, score)
 
 if __name__ == "__main__":
     http_libs = {
