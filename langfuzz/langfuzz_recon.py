@@ -4,11 +4,12 @@ import subprocess
 import sqlite3
 import re
 
-from .langfuzzDB import Library, LibraryFile, create_tables, get_engine, get_functions_from_db
+from .langfuzzDB import Database, Library, LibraryFile, create_tables, get_engine
 from sqlalchemy.orm import Session
 
 class LangFuzzRecon:
     def __init__(self, sqlitedb, repo_path, target_libraries, language):
+        self.db = Database(sqlitedb)
         self.sqlitedb = sqlitedb
         self.repo_path = repo_path
         self.language = language
@@ -28,7 +29,7 @@ class LangFuzzRecon:
         self.download_github_repos(target_libraries)
         self.get_fuzz_files(target_libraries)
         self.radon_analysis(target_libraries)
-        self.get_code_all_functions(target_libraries)
+        #self.get_code_all_functions(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -84,10 +85,12 @@ class LangFuzzRecon:
 
     def get_code_all_functions(self, libraries_info):
         for library_name in libraries_info.keys():
-            functions = get_functions_from_db(self.sqlitedb, library_name)
-
+            with self.db as db:
+                functions = db.get_functions_from_db(library_name)
+        
             for func in functions:
                 file_name = func.file_name
+                print(file_name)
                 function_name = func.function_name
                 function_code = self.get_function_code(library_name, file_name, function_name)
 
@@ -147,6 +150,7 @@ class LangFuzzRecon:
         # Search for the file in the repo directory
         for root, _, files in os.walk(repo_dir):
             if file_name in files:
+                print('Found file: ' + file_name)
                 file_path = os.path.join(root, file_name)
                 break
         else:
@@ -200,26 +204,28 @@ class LangFuzzRecon:
         session.close()
 
     def run_radon_tool(self, library_name):
-        src_path = os.path.join(self.repo_path, library_name)
-        radon_file_path = os.path.join(self.repo_path, "generated_files", f"{library_name}_functions.txt")
-
+        source_path = os.path.join(self.repo_path, library_name)
         os.makedirs(os.path.join(self.repo_path, "generated_files", "radon"), exist_ok=True)
-
+        radon_file = f"{library_name}_functions.txt"
+        radon_file_path = os.path.join(self.repo_path, "generated_files", "radon", radon_file)
+  
+        print(source_path)
         with open(radon_file_path, "w") as radon_file:
             radon_output = subprocess.run(
-                ["radon", "cc", "--exclude", "*test*", src_path],
+                ["radon", "cc", "--exclude", "*test*", source_path],
                 stdout=subprocess.PIPE,
                 text=True,
                 check=True
             )
-            pattern = re.compile(r'^(.+?\.py)\n(?:.*\n)*?\s+F\s+\d+:\d+\s+(\w+)\s+[-A]+(\w)', re.MULTILINE)
+            pattern = re.compile(r'^saved_repos.+\/(.+?\.py)\n((?:.*\n)*?)\s+F\s+\d+:\d+\s+([^\s_]\w+)\s+[-A]+([A-E])', re.MULTILINE)
             matches = pattern.findall(radon_output.stdout)
 
             for match in matches:
-                file_name, function_name, score = match
+                file_name, _, function_name, score = match
                 radon_file.write(f"{file_name} {function_name} {score}\n")
             if not matches:
                 print(f"No matching functions found for library {library_name}")
+       
         return radon_file_path
 
     def parse_save_radon_analysis(self, radon_file_path, library_name):

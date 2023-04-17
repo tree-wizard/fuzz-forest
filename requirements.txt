@@ -1,0 +1,5 @@
+sqlalchemy
+openai
+gitpython
+tiktoken
+radon

@@ -1,16 +1,9 @@
 from langfuzz.langfuzz import LangFuzz
-from langfuzz.langfuzz import get_fuzz_tests_from_db
-from langfuzz.langfuzz import GeneratedFile, Library, LibraryFile, create_tables, get_engine
-from sqlalchemy.orm import Session
-import os
-import openai
-import sys
-import subprocess
-from llm_agent import Agent, ChatLLM
-from llm_agent.tools.base import ToolInterface
-from llm_agent.tools.python_repl import PythonREPLTool, PythonREPLFuzzTool
-from llm_agent.tools.search import SerpAPITool 
 from langfuzz.langfuzz_recon import LangFuzzRecon
+from langfuzz.langfuzzDB import Database
+from langfuzz.langfuzzDB import GeneratedFile, Library, LibraryFile, create_tables, get_engine
+from sqlalchemy.orm import Session
+
 
 #os.environ["OPENAI_API_KEY"] = "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"
 #openai.api_key = "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"
@@ -60,10 +53,6 @@ libs = {
     'boto3': 'https://github.com/boto/boto3',
     'rq': 'https://github.com/rq/rq'}
 
-
-
-
-
 # radon_score is optional, if you don't pass it, it will pull all the functions
 
 #priority_funcs = langfuzz.get_radon_functions_from_db('urllib3', radon_score)
@@ -73,7 +62,7 @@ libs = {
 #langfuzz.extended_fuzz_analysis(lib)
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libs, 'python')
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional, if you don't pass it, it will pull all the functions
@@ -81,14 +70,14 @@ radon_score = ['C', 'D', 'E', 'F']
 
 
 # First pass
-for library_name in libs.keys():
+for library_name in http_libs.keys():
     print(library_name)
-    priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
-    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    langfuzz.generate_fuzz_tests(library_name, priority_funcs)
-    langfuzz.initial_fuzz_analysis(library_name)
+    #priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    #langfuzz.generate_fuzz_tests(library_name, priority_funcs)
+    #langfuzz.initial_fuzz_analysis(library_name)
 
-    langfuzz.fix_fuzz_tests(library_name)
+    #langfuzz.fix_fuzz_tests(library_name)
 
 # Second pass
 #for library_name in libs.keys():
