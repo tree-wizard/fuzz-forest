@@ -3,6 +3,7 @@ import git
 import subprocess
 import sqlite3
 import re
+import json
 
 from .langfuzzDB import Database, Library, LibraryFile, create_tables, get_engine
 from sqlalchemy.orm import Session
@@ -29,7 +30,8 @@ class LangFuzzRecon:
         self.download_github_repos(target_libraries)
         self.get_fuzz_files(target_libraries)
         self.radon_analysis(target_libraries)
-        #self.get_code_all_functions(target_libraries)
+        self.get_code_all_functions(target_libraries)
+        self.clean_functions_in_DB(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -37,8 +39,6 @@ class LangFuzzRecon:
         if not os.path.exists(repo_dir):
             print(f"Cloning oss-fuzz from {git_url}...")
             git.Repo.clone_from(git_url, repo_dir)
-        else:
-            print(f"oss-fuzz already exists, skipping download.")
 
     def download_github_repos(self, libraries_info):
         for lib_name, lib_data in libraries_info.items():
@@ -53,8 +53,6 @@ class LangFuzzRecon:
                     continue
                 print(f"Cloning {lib_name} from {git_url}...")
                 git.Repo.clone_from(git_url, repo_dir)
-            else:
-                print(f"{lib_name} already exists, skipping download.")
 
     def get_fuzz_files(self, libraries_info):
         for key in libraries_info:
@@ -69,8 +67,6 @@ class LangFuzzRecon:
                     if file.startswith("fuzz") and file.endswith(".py"):
                         file_path = os.path.join(root, file)
                         self.save_fuzz_file(library_name, file_path, "fuzzer")
-        else:
-            print(f"{library_name} Repo does not exist in oss-fuzz")
 
     def find_fuzz_in_repo(self, library_name):
         path = os.path.join(self.repo_path, library_name)
@@ -87,17 +83,23 @@ class LangFuzzRecon:
         for library_name in libraries_info.keys():
             with self.db as db:
                 functions = db.get_functions_from_db(library_name)
-        
-            for func in functions:
-                file_name = func.file_name
-                print(file_name)
-                function_name = func.function_name
-                function_code = self.get_function_code(library_name, file_name, function_name)
+            
+                for func in functions:
+                    file_path = func.file_path
+                    file_line_start = func.file_line_start
+                    file_line_end = func.file_line_end
 
-                if function_code:
-                    self.update_function_contents_in_db(library_name, file_name, function_name, function_code)
+                    if file_path is not None:
+                        function_code = self.get_function_code(file_path, file_line_start, file_line_end)
 
+                        if function_code:
+                            self.update_function_contents_in_db(library_name, func.file_name, func.function_name, function_code)
 
+    def clean_functions_in_DB(self, libraries_info):
+        for library_name in libraries_info.keys():
+            with self.db as db:
+                db.clean_functions_in_DB(library_name)
+                
     def update_function_contents_in_db(self, library_name, file_name, function_name, function_code):
         engine = get_engine(self.sqlitedb)
         session = Session(engine)
@@ -116,48 +118,12 @@ class LangFuzzRecon:
 
         session.close()
 
-    def find_function_code(self, file_path, function_name):
-        with open(file_path, "r") as f:
-            lines = f.readlines()
-
-        function_code = ""
-        in_function = False
-        indent_level = 0
-
-        for line in lines:
-            stripped_line = line.strip()
-
-            if not in_function and re.match(r'^\s*@', line):
-                # Skip decorators
-                continue
-
-            if not in_function and re.match(rf'^\s*def\s+{function_name}\s*\(', stripped_line):
-                in_function = True
-                indent_level = len(line) - len(stripped_line)
-
-            if in_function:
-                function_code += line
-
-                if re.match(rf'^\s{{0,{indent_level}}}\S', line) and not re.match(rf'^\s*def\s+{function_name}\s*\(', stripped_line):
-                    # We reached the end of the function
-                    break
-
-        return function_code
-
-    def get_function_code(self, library_name, file_name, function_name):
-        repo_dir = os.path.join(self.repo_path, library_name)
-
-        # Search for the file in the repo directory
-        for root, _, files in os.walk(repo_dir):
-            if file_name in files:
-                print('Found file: ' + file_name)
-                file_path = os.path.join(root, file_name)
-                break
-        else:
-            print(f"File {file_name} not found in {repo_dir}")
-            return None
-        function_code = self.find_function_code(file_path, function_name)
-        return function_code
+    def get_function_code(self, file_path, file_line_start, file_line_end):
+      with open(file_path, 'r') as f:
+          lines = f.readlines()
+      function_lines = lines[file_line_start-1:file_line_end]
+      function_code = ''.join(function_lines)
+      return function_code
 
     def save_fuzz_file(self, library_name, file_path, file_type):
         engine = get_engine(self.sqlitedb)
@@ -174,8 +140,6 @@ class LangFuzzRecon:
         if existing_file is None:
             lib_file = LibraryFile(library_name=library_name, file_name=file_name, contents=contents, fuzz_test=True, language=self.language, type=file_type)
             session.add(lib_file)
-        else:
-            print(f"File {file_name} already exists for library {library_name}, skipping.")
         
         session.commit()
         session.close()
@@ -197,76 +161,53 @@ class LangFuzzRecon:
             if existing_lib is None:
                 lib = Library(library_name=library_name, github_url=github_url, docs_url=docs_url, language=self.language)
                 session.add(lib)
-            else:
-                print(f"Library {library_name} already exists, skipping.")
 
         session.commit()
         session.close()
 
     def run_radon_tool(self, library_name):
-        source_path = os.path.join(self.repo_path, library_name)
-        os.makedirs(os.path.join(self.repo_path, "generated_files", "radon"), exist_ok=True)
-        radon_file = f"{library_name}_functions.txt"
-        radon_file_path = os.path.join(self.repo_path, "generated_files", "radon", radon_file)
-  
-        print(source_path)
-        with open(radon_file_path, "w") as radon_file:
-            radon_output = subprocess.run(
-                ["radon", "cc", "--exclude", "*test*", source_path],
-                stdout=subprocess.PIPE,
-                text=True,
-                check=True
-            )
-            pattern = re.compile(r'^saved_repos.+\/(.+?\.py)\n((?:.*\n)*?)\s+F\s+\d+:\d+\s+([^\s_]\w+)\s+[-A]+([A-E])', re.MULTILINE)
-            matches = pattern.findall(radon_output.stdout)
+       source_path = os.path.join(self.repo_path, library_name)
+       os.makedirs(os.path.join(self.repo_path, "generated_files", "radon"), exist_ok=True)
+       radon_file_name = f"{library_name}_functions.json"
+       radon_file_path = os.path.join(self.repo_path, "generated_files", "radon", radon_file_name)
 
-            for match in matches:
-                file_name, _, function_name, score = match
-                radon_file.write(f"{file_name} {function_name} {score}\n")
-            if not matches:
-                print(f"No matching functions found for library {library_name}")
-       
-        return radon_file_path
+       radon_output = subprocess.run(
+           ["radon", "cc", "--exclude", "*test*,*docs*", source_path, "-j"],
+           stdout=subprocess.PIPE,
+           text=True,
+           check=True
+       )
+
+       # save radon output to file
+       with open(radon_file_path, "w") as radon_file:
+           radon_file.write(radon_output.stdout)
+
+       if not radon_output.stdout:
+           print(f"Unable to run radon for {library_name}")
+        
+       return radon_file_path
 
     def parse_save_radon_analysis(self, radon_file_path, library_name):
-       with open(radon_file_path, "r") as radon_file:
-           for line in radon_file:
-               line = line.strip()
-               parts = line.split()
+       with open(radon_file_path, 'r') as f:
+        data = json.load(f)
 
-               file_name = parts[0]
-               function_name = parts[1]
-               score = parts[2]
+        for file_path, functions in data.items():
+            file_name = file_path.split('/')[-1]
 
-               if not function_name.startswith('_'):
-                   self.save_radon_result(library_name, file_name, function_name, score)
+            for function in functions:
+                if function['type'] == 'function' and not function['name'].startswith('_'):
+                #    print(f"file_name={file_name}")
+                #    print(f"file_path={file_path}")
+                #    print(f"function_name={function['name']}")
+                #    print(f"file_line_start={function['lineno']}")
+                #    print(f"file_line_end={function['endline']}")
+                #    print(f"score={function['rank']}")
+                    self.save_radon_result(library_name, file_name, file_path, function['name'], function['lineno'], function['endline'], function['rank'])
 
-
-    def save_radon_result(self, library_name, file_name, function_name, complexity_score):
-        engine = get_engine(self.sqlitedb)
-        create_tables(engine)
-        session = Session(engine)
-
-        existing_entry = session.query(LibraryFile).filter(
-            LibraryFile.library_name == library_name,
-            LibraryFile.file_name == file_name,
-            LibraryFile.function_name == function_name
-        ).first()
-    
-        if not existing_entry:
-            radon_result = LibraryFile(
-                library_name=library_name,
-                file_name=file_name,
-                function_name=function_name,
-                fuzz_test=False,
-                language=self.language,
-                complexity_score=complexity_score,
-                type="source"
-            )
-            session.add(radon_result)
-            session.commit()
-        
-        session.close()
+        # add line number file_path 
+    def save_radon_result(self, library_name, file_name, file_path, function_name, file_line_start, file_line_end, score):
+        with self.db as db:
+            db.save_radon_result(library_name, file_name, self.language, file_path, function_name, file_line_start, file_line_end, score)
 
     def radon_analysis(self, libraries_info):
         for library_name in libraries_info.keys():

@@ -23,8 +23,6 @@ def run_initial_atheris_fuzzer(input_text: str) -> str:
         output = e.output
     finally:
         os.remove("fuzz_test.py")
-    # clean up created crash files, defined as crash-* regex
-    subprocess.run(['rm', 'crash-*'])
     # Remove the first 7 lines of the output, which are the Atheris initialization logs
     output_lines = output.decode().splitlines()
     output = "\n".join(output_lines[7:])

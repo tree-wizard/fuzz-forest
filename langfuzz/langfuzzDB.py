@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,9 @@ class LibraryFile(Base):
     language = Column(String)
     complexity_score = Column(String)
     type = Column(String) #fuzzer, test, source, etc.
+    file_path = Column(String)
+    file_line_start = Column(Integer)
+    file_line_end = Column(Integer)
 
 class GeneratedFile(Base):
     __tablename__ = "generated_files"
@@ -110,7 +113,7 @@ class Database:
         return fuzz_files
 
     def get_functions_that_contain_string(self, library_name, search_string):
-        results = self.session.query(LibraryFile.function_name).filter(LibraryFile.library_name == library_name).filter(LibraryFile.contents.contains(search_string)).all()
+        results = self.session.query(LibraryFile.function_name).filter(LibraryFile.library_name == library_name).filter(LibraryFile.function_name.contains(search_string)).all()
         return results
     
     def generated_file_exists(self, library_name, function_name):
@@ -137,6 +140,43 @@ class Database:
 
         return function_names
 
+    def clean_functions_in_DB(self, library_name):
+        with Session(self.engine) as session:
+            conditions = (
+                    LibraryFile.library_name == library_name,
+                    or_(
+                        LibraryFile.function_name == ('main'),
+                        LibraryFile.function_name.contains('init'),
+                        LibraryFile.function_name.contains('test'),
+                        LibraryFile.file_name == "__init__.py"
+                    )
+                )
+        session.query(LibraryFile).filter(*conditions).delete(synchronize_session='fetch')
+        session.commit()
+        
+    def save_radon_result(self, library_name, file_name, language, file_path, function_name, file_line_start, file_line_end, score):
+        with Session(self.engine) as session:
+            existing_entry = session.query(LibraryFile).filter(
+                LibraryFile.library_name == library_name,
+                LibraryFile.file_name == file_name,
+                LibraryFile.function_name == function_name
+            ).first()
+
+            if not existing_entry:
+                radon_result = LibraryFile(
+                    library_name=library_name,
+                    file_name=file_name,
+                    file_path=file_path,
+                    function_name=function_name,
+                    file_line_start=file_line_start,
+                    file_line_end=file_line_end,
+                    complexity_score=score,
+                    fuzz_test=False,
+                    language=language,
+                    type="radon"
+                )
+                session.add(radon_result)
+                session.commit()
 
     def __enter__(self):
         return self

@@ -50,8 +50,11 @@ class LangFuzz:
         
     def get_functions_that_contain_string(self, library_name, search_string):
         with self.db as db:
-            return db.get_functions_that_contain_string(library_name, search_string)
-        
+            result = db.get_functions_that_contain_string(library_name, search_string)
+        # Filter out None values and extract function names from the tuples
+        function_names = [func[0] for func in result if func[0] is not None]
+        return function_names
+
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
            directive = "Return only valid, formated python code, no text. Write an atheris fuzz test for the following function:\n"
@@ -121,8 +124,6 @@ class LangFuzz:
         for file in fuzz_files:
             id, file_name, function_name, contents = file
             output = run_initial_atheris_fuzzer(contents)
-            #print("+------------------------------------+")
-            #print(output)
 
             if 'Done 2 runs' in output:
                 self.update_fuzz_test_in_db(id, runs=True, run_output=output)
@@ -133,58 +134,25 @@ class LangFuzz:
 
     def add_fuzz_files_to_prompt(self, file_data):
         fuzz_prompt_context = ''
-        for function_name, contents in file_data:
-            fuzz_prompt_context += f"example fuzzer for {function_name}:\n{contents}\n"
+        for function in file_data:
+            fuzz_prompt_context += f"example fuzzer for {function.function_name}:\n{function.contents}\n"
         return fuzz_prompt_context
-    
-    def install_package(self, package_name):
-        subprocess.check_call(["python", "-m", "pip", "install", package_name])
-
-    def is_package_installed(self, package_name):
-        spec = importlib.util.find_spec(package_name)
-        return spec is not None
-
-    """def get_python_functions_and_code_from_library(self, library_name, function_list=None):
-        funcs = {}
-
-        if not self.is_package_installed(library_name):
-            if not self.install_package(library_name):
-                print("Unable to import and install library")
-                return funcs
-
-        try:
-            library = importlib.import_module(library_name)
-        except ImportError:
-            print("Unable to import and install library")
-            return funcs
-
-        for _, name, is_pkg in pkgutil.walk_packages(library.__path__):
-            if is_pkg:
-                continue
-            try:
-                module = importlib.import_module(f"{library_name}.{name}")
-
-                for func_name, obj in inspect.getmembers(module):
-                    if inspect.isfunction(obj) and (function_list is None or func_name in function_list):
-                        funcs.update({func_name: inspect.getsource(obj)})
-            except Exception as e:
-                print(f"Error loading module {name}: {e}")
-        return funcs"""
     
     def generate_fuzz_tests(self, library_name, function_list=None):
         base_template = open(self.base_prompt_path, "r").read()
         fuzz_file_data = self.get_existing_fuzz_file_data(library_name)
         fuzzer_context = self.add_fuzz_files_to_prompt(fuzz_file_data)
         with self.db as db:
-            functions = db.get_functions_from_db(self.sqlitedb, library_name, function_list)
+            functions = db.get_functions_from_db(library_name, function_list)
                 # Above was setup, below we create the full prompt, generate the fuzz test, and save it to the db
         for function in functions:
-            complete_prompt = self.create_prompt(base_template, fuzzer_context, library_name, function.function_name, function.function_code)
+            complete_prompt = self.create_prompt(base_template, fuzzer_context, library_name, function.function_name, function.contents)
             if not self.db.generated_file_exists(library_name, function.function_name):
                 fuzz_test_code = self.generate_fuzz_code(complete_prompt)
-                self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
                 print("=" * 50)
                 print(function.function_name)
+                print(fuzz_test_code)
+                self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
 
     def get_radon_functions_from_db(self, lib_name, score=None):
         with self.db as db:
@@ -218,5 +186,4 @@ if __name__ == "__main__":
     radon_score = ['C', 'D', 'E', 'F']
     # radon_score is optional, if you don't pass it, it will pull all the functions
     priority_funcs = LangFuzz.get_radon_functions_from_db('urllib3', radon_score)
-    print(priority_funcs)
     langfuzz.generate_fuzz_tests('urllib3', priority_funcs)

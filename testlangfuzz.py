@@ -72,10 +72,10 @@ radon_score = ['C', 'D', 'E', 'F']
 # First pass
 for library_name in http_libs.keys():
     print(library_name)
-    #priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
-    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    #langfuzz.generate_fuzz_tests(library_name, priority_funcs)
-    #langfuzz.initial_fuzz_analysis(library_name)
+    priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    #langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    langfuzz.initial_fuzz_analysis(library_name)
 
     #langfuzz.fix_fuzz_tests(library_name)
 
