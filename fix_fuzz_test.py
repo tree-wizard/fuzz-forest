@@ -2,7 +2,6 @@ from langfuzz.tools.python_repl import PythonREPLFuzzTool
 import openai
 import time
 
-
 def fix_code(code, output):
     # Use OpenAI GPT to generate a fixed version of the code
     # Modify the code to fix the problem

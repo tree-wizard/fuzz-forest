@@ -3,11 +3,8 @@
 # Generic atheris fuzz test example:
 import atheris
 import sys
-# This tells Atheris to instrument all functions in the `struct` and
-# `example_library` modules.
-with atheris.instrument_imports():
-  import struct
-  import example_library
+import struct
+import example_library
 def TestOneInput(data):
 #The entry point for our fuzzer.
 #  This is a callback that will be repeatedly invoked with different arguments
@@ -19,9 +16,15 @@ def TestOneInput(data):
     return  # Input must be 4 byte integer.
   number, = struct.unpack('<I', data)
   example_library.CodeBeingFuzzed(number)
-atheris.Setup(sys.argv, TestOneInput)
-atheris.Fuzz()
-#
+
+ def main():
+    atheris.Setup(sys.argv, TestOneInput)
+    atheris.Fuzz()
+
+if __name__ == "__main__":
+    atheris.instrument_all() # This is needed for coverage to work.
+    main()
+
 # When fuzzing Python, Atheris will report a failure if the Python code under test throws an uncaught exception.
 # Atheris FuzzedDataProvider API Reference
 # The FuzzedDataProvider is a class that provides a number of functions to consume bytes from the input and convert them into other forms.
@@ -48,12 +51,10 @@ fdp = atheris.FuzzedDataProvider(data)
 # ConsumeFloatListInRange(count: int, min: float, max: float): Consume a list of count floats in the range [min, max].
 # PickValueInList(l: list): Given a list, pick a random value.
 # ConsumeBool(): Consume either True or False.
-Make sure all libraries used in fuzz test are instrumented.
 # An example of fuzzing with a custom mutator in Python:
 import atheris
-with atheris.instrument_imports():
-  import sys
-  import zlib
+import sys
+import zlib
 
 def CustomMutator(data, max_size, seed):
   try:
@@ -64,27 +65,37 @@ def CustomMutator(data, max_size, seed):
     decompressed = atheris.Mutate(decompressed, len(decompressed))
   return zlib.compress(decompressed)
 
-@atheris.instrument_func  # Instrument the TestOneInput function itself
 def TestOneInput(data):
-
   try:
     decompressed = zlib.decompress(data)
   except zlib.error:
     return
-
   if len(decompressed) < 2:
     return
-
   try:
     if decompressed.decode() == 'FU':
       raise RuntimeError('Boom')
   except UnicodeDecodeError:
     pass
 
-if __name__ == '__main__':
+def main():
   if len(sys.argv) > 1 and sys.argv[1] == '--no_mutator':
     atheris.Setup(sys.argv, TestOneInput)
   else:
     atheris.Setup(sys.argv, TestOneInput, custom_mutator=CustomMutator)
-    
   atheris.Fuzz()
+if __name__ == "__main__":
+    atheris.instrument_all()
+    main()
+
+Make sure all fuzz test instrumented with the following code:
+
+ def main():
+    atheris.Setup(sys.argv, TestOneInput)
+    atheris.Fuzz()
+
+if __name__ == "__main__":
+    atheris.instrument_all()
+    main()
+
+

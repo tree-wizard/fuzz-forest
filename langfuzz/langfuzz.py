@@ -57,30 +57,30 @@ class LangFuzz:
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
-           directive = "Return only valid, formated python code, no text. Write an atheris fuzz test for the following function:\n"
+           directive = f"Return only valid, formated python code, no text. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
        else:
            directive = "Write a fuzz test for the following function:\n"
 
-       prompt = base_template + fuzzer_context + directive + function_code
+       prompt = base_template + fuzzer_context + directive + "This is the source code for" + function_name + ":" + function_code
        num_tokens = num_tokens_from_string(prompt)
 
        if num_tokens <= 2400:
            return prompt
 
        else:
-        prompt = base_template + directive + function_code
+        prompt = base_template + directive + "This is the source code for" + function_name + ":" + function_code
         num_tokens = num_tokens_from_string(prompt)
         
         if num_tokens <= 2400:
             return prompt
 
-       prompt = base_template + fuzzer_context + directive + library_name + " " + function_name
+       prompt = base_template + fuzzer_context + directive
        num_tokens = num_tokens_from_string(prompt)
 
        if num_tokens <= 2400:
            return prompt
 
-       prompt = base_template + directive + library_name + "." + function_name
+       prompt = base_template + directive
 
        return prompt
 
@@ -123,6 +123,7 @@ class LangFuzz:
         fuzz_files = get_fuzz_tests_from_db(self.sqlitedb, lib)
         for file in fuzz_files:
             id, file_name, function_name, contents = file
+            print(function_name)
             output = run_initial_atheris_fuzzer(contents)
 
             if 'Done 2 runs' in output:
@@ -135,7 +136,7 @@ class LangFuzz:
     def add_fuzz_files_to_prompt(self, file_data):
         fuzz_prompt_context = ''
         for function in file_data:
-            fuzz_prompt_context += f"example fuzzer for {function.function_name}:\n{function.contents}\n"
+            fuzz_prompt_context += f"Valid example fuzzer for {function.function_name}:\n{function.contents}\n"
         return fuzz_prompt_context
     
     def generate_fuzz_tests(self, library_name, function_list=None):
