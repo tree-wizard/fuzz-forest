@@ -19,10 +19,7 @@ http_libs = {
         'docs': 'https://urllib3.readthedocs.io/en/stable/'
     },
     'aiohttp': 'https://github.com/aio-libs/aiohttp/',
-    'twisted': {
-        'github': 'https://github.com/twisted/twisted',
-        'docs': 'https://docs.twisted.org/en/stable/'
- }}
+}
 
 libs = {
     'urllib3': {
@@ -66,22 +63,27 @@ langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional, if you don't pass it, it will pull all the functions
-#radon_score = ['C', 'D', 'E', 'F']
+radon_score = ['C', 'D', 'E', 'F']
 
 
 # First pass
 for library_name in http_libs.keys():
     print(library_name)
-    #priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
-    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    #print("Getting functions that contain string 'parse'")
+    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    print("Generating fuzz tests")
+    langfuzz.generate_fuzz_tests(library_name, priority_funcs)
+    print("Running initial fuzz analysis")
     langfuzz.initial_fuzz_analysis(library_name)
+    print("Fixing fuzz test code")
+    langfuzz.fix_fuzz_test_code(library_name) 
     #langfuzz.extended_fuzz_analysis(library_name, 200)
 
 # Second pass
 #for library_name in libs.keys():
 #    print(library_name)
-#    langfuzz.fix_fuzz_tests(library_name) 
+#    langfuzz.fix_fuzz_test_code(library_name) 
 #    langfuzz.extended_fuzz_analysis(library_name, 200)
 
 # Analysis Pass

@@ -1,15 +1,12 @@
 import os
 import openai
-import importlib
-import importlib.util
 import re
 import subprocess
+import time
+from typing import Tuple
 
-from sqlalchemy.orm import Session
-
-from .langfuzz_recon import LangFuzzRecon
-from .langfuzzDB import Database, GeneratedFile, LibraryFile, Library, get_engine
-from .utils import run_initial_atheris_fuzzer, num_tokens_from_string, get_fuzz_tests_from_db
+from .langfuzzDB import Database
+from .utils import run_atheris_fuzzer, num_tokens_from_string
 
 class LangFuzz:
     def __init__(self, sqlitedb, language, base_prompt_path):
@@ -40,9 +37,9 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None):
         with self.db as db:
-            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash)
+            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents)
 
     def get_existing_fuzz_file_data(self, library_name):
         with self.db as db:
@@ -54,6 +51,14 @@ class LangFuzz:
         # Filter out None values and extract function names from the tuples
         function_names = [func[0] for func in result if func[0] is not None]
         return function_names
+    
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None):
+        with self.db as db:
+            return db.get_lib_fuzz_tests_from_db(library_name, runs)
+
+    def get_radon_functions_from_db(self, lib_name, score=None):
+        with self.db as db:
+            return db.get_radon_functions_from_db(lib_name, score)
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
@@ -84,54 +89,107 @@ class LangFuzz:
 
        return prompt
 
+    def fix_code(self, code: str, output: str) -> str:
+        # Use OpenAI GPT to generate a fixed version of the code
+        # Modify the code to fix the problem
+        # Return the updated code
+        prompt=f"Fix the following code:\n{code}\nOutput: {output} \n Return only the valid formatted python code, no text."
+
+        response = openai.ChatCompletion.create(
+                model='gpt-3.5-turbo',
+                messages=[
+                    {"role": "system", "content": prompt}],
+                max_tokens=1550,
+                temperature=0.6,
+            )
+        return response["choices"][0]["message"]["content"]
+
+    def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
+        sucessful_run = 'Done 2 runs'
+        n = 0
+        while n < 10:
+            n += 1
+            updated_code = self.fix_code(function_code, output)
+            new_output = run_atheris_fuzzer(updated_code)
+            if sucessful_run in new_output:
+                print('fixed')
+                return updated_code, new_output, True
+            else:
+                output = new_output
+                time.sleep(1)
+        return updated_code, output, False
+
+    def fix_fuzz_test_code(self, library_name):
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=False)
+        for function in fuzz_functions:
+            print("Fixing fuzz test code for", function.function_name)
+            updated_code, output, runs = self.fix_fuzz_test(function.contents, function.run_output)
+            #function to fix fuzz test code, returns fixed_code, run status, and output
+            if runs == True:
+                self.update_fuzz_test_in_db(function.id, runs=True, run_output=str(output), contents=updated_code) #, refactored=True)
+            else:
+                self.update_fuzz_test_in_db(function.id, runs=False, run_output=str(output), contents=updated_code) #, refactored=True) 
+
+    def run_fuzzer(self, command, timeout):
+        try:
+            output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+            crash = False
+        except subprocess.CalledProcessError as e:
+            output = e.output
+            crash = True
+        except subprocess.TimeoutExpired:
+            output = "Timeout expired"
+            crash = True
+
+        return output, crash
+
+    def parse_coverage(self, output):
+        cov_pattern = re.compile(r'cov:\s+(\d+)')
+        cov_matches = cov_pattern.findall(output)
+        if cov_matches:
+            cov = int(cov_matches[-1])
+        else:
+            cov = None
+
+        return cov
+
     def extended_fuzz_analysis(self, library_name, time=20000):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_files = get_fuzz_tests_from_db(self.sqlitedb, library_name, runs=True)
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, library_name, runs=True)
 
-        for file in fuzz_files:
-            id, file_name, function_name, contents = file
-            function_path = os.path.join(generated_files_path, function_name)
+        for function in fuzz_functions:
+            function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
-            print(contents)
-            fuzzer_file_path = os.path.join(function_path, file_name)
+            print(function.contents)
+            fuzzer_file_path = os.path.join(function_path, function.file_name)
 
             with open(fuzzer_file_path, 'w') as fuzzer_file:
-                fuzzer_file.write(contents)
+                fuzzer_file.write(function.contents)
 
             command = f'python {fuzzer_file_path} -max_total_time={time}'
-            try:
-                output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
-                crash = False
-            except subprocess.CalledProcessError as e:
-                output = e.output
-                crash = True
+            timeout = time / 60 + 5  # Convert time to minutes and add 5 minutes
 
+            output, crash = self.run_fuzzer(command, timeout)
             exception = 'exception' in output.lower()
+            cov = self.parse_coverage(output)
 
-            cov_pattern = re.compile(r'cov:\s+(\d+)')
-            cov_matches = cov_pattern.findall(output)
-            if cov_matches:
-                cov = int(cov_matches[-1])
-            else:
-                cov = None
-
-            self.update_fuzz_test_in_db(id, run_output=output, coverage=cov, exception=exception, crash=crash)
+            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
 
     def initial_fuzz_analysis(self, lib):
-        fuzz_files = get_fuzz_tests_from_db(self.sqlitedb, lib)
-        for file in fuzz_files:
-            id, file_name, function_name, contents = file
-            print(function_name)
-            output = run_initial_atheris_fuzzer(contents)
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, lib)
+        for function in fuzz_functions:
+            #id, file_name, function_name, contents = file
+            print(function.function_name)
+            output = run_atheris_fuzzer(function.contents)
 
             if 'Done 2 runs' in output:
-                self.update_fuzz_test_in_db(id, runs=True, run_output=output)
+                self.update_fuzz_test_in_db(function.id, runs=True, run_output=output)
             elif 'Exception' in output:
-                self.update_fuzz_test_in_db(id, runs=False, run_output=output, exception=True)
+                self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, exception=True)
             else:
-                self.update_fuzz_test_in_db(id, runs=False, run_output=output)
+                self.update_fuzz_test_in_db(function.id, runs=False, run_output=output)
 
     def add_fuzz_files_to_prompt(self, file_data):
         fuzz_prompt_context = ''
@@ -150,34 +208,17 @@ class LangFuzz:
             complete_prompt = self.create_prompt(base_template, fuzzer_context, library_name, function.function_name, function.contents)
             if not self.db.generated_file_exists(library_name, function.function_name):
                 fuzz_test_code = self.generate_fuzz_code(complete_prompt)
-                print("=" * 50)
+                #print("=" * 50)
                 print(function.function_name)
-                print(fuzz_test_code)
+                #print(fuzz_test_code)
                 self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
-
-    def get_radon_functions_from_db(self, lib_name, score=None):
-        with self.db as db:
-            return db.get_radon_functions_from_db(lib_name, score)
 
 if __name__ == "__main__":
     http_libs = {
         'urllib3': {
             'github': 'https://github.com/urllib3/urllib3',
             'docs': 'https://urllib3.readthedocs.io/en/stable/'
-        },
-        'requests': {
-            'github': 'https://github.com/psf/requests',
-                        'docs': 'https://requests.readthedocs.io/en/latest/'
-        },
-        'aiohttp': {
-            'github': 'https://github.com/aio-libs/aiohttp/',
-            'docs': 'https://docs.aiohttp.org/en/stable/'
-        },
-        'twisted': {
-            'github': 'https://github.com/twisted/twisted',
-            'docs': 'https://docs.twisted.org/en/stable/'
-        }
-    }
+    } }
 
     # Initialize LangFuzz object
     langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)

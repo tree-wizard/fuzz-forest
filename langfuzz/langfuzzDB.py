@@ -46,6 +46,7 @@ class GeneratedFile(Base):
     tokens = Column(Integer)
     crash = Column(Boolean)
     exception= Column(Boolean)
+    #refactored = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -65,10 +66,28 @@ class Database:
 
     def get_functions_from_db(self, library_name, function_list=None):
         if function_list is not None:
-            functions = self.session.query(LibraryFile).filter_by(library_name=library_name).filter(LibraryFile.function_name.in_(function_list)).all()
+            functions = self.session.query(LibraryFile).filter(
+                LibraryFile.library_name == library_name,
+                LibraryFile.function_name.in_(function_list)
+            ).all()
         else:
-            functions = self.session.query(LibraryFile).filter_by(library_name=library_name).all()
+            functions = self.session.query(LibraryFile).filter(
+                LibraryFile.library_name == library_name
+            ).all()
         return functions
+
+    
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None):
+        create_tables(self.engine)
+        query = self.session.query(GeneratedFile).filter(
+            GeneratedFile.library_name == library_name,
+            GeneratedFile.fuzz_test == True
+        )
+        if runs is not None:
+            query = query.filter(GeneratedFile.runs == runs)
+
+        fuzz_tests = query.all()
+        return fuzz_tests
 
     def save_fuzz_test_to_db(self, library_name, function_name, file_name, fuzz_test_code, tokens):
         existing_file = self.session.query(GeneratedFile).filter(
@@ -94,7 +113,7 @@ class Database:
             self.session.add(generated_file)
             self.session.commit()
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None):
         fuzz_test = self.session.query(GeneratedFile).filter_by(id=id).first()
         if runs is not None:
             fuzz_test.runs = runs
@@ -106,7 +125,12 @@ class Database:
             fuzz_test.exception = exception
         if crash is not None:
             fuzz_test.crash = crash
+        if contents is not None:
+            fuzz_test.contents = contents
         self.session.commit()
+#        if refactored is not None:
+#            fuzz_test.refactored = refactored
+        
 
     def get_existing_fuzz_file_data(self, library_name):
         fuzz_files = self.session.query(LibraryFile.file_name, LibraryFile.function_name, LibraryFile.contents).filter_by(library_name=library_name, fuzz_test=True).all()
@@ -117,66 +141,62 @@ class Database:
         return results
     
     def generated_file_exists(self, library_name, function_name):
-        with Session(self.engine) as session:
-            existing_file = session.query(GeneratedFile).filter(
-                GeneratedFile.library_name == library_name,
-                GeneratedFile.function_name == function_name
-            ).first()
-            return existing_file is not None
+        existing_file = self.session.query(GeneratedFile).filter(
+            GeneratedFile.library_name == library_name,
+            GeneratedFile.function_name == function_name
+        ).first()
+        return existing_file is not None
 
     def get_radon_functions_from_db(self, lib_name, score=None):
-        with Session(self.engine) as session:
-            query = session.query(LibraryFile.function_name).filter(
-                LibraryFile.library_name == lib_name,
-                LibraryFile.type == "radon"
-            )
+        query = self.session.query(LibraryFile.function_name).filter(
+            LibraryFile.library_name == lib_name,
+            LibraryFile.type == "radon"
+        )
 
-            if score is not None:
-                if isinstance(score, str):
-                    score = [score]
-                query = query.filter(LibraryFile.complexity_score.in_(score))
+        if score is not None:
+            if isinstance(score, str):
+                score = [score]
+            query = query.filter(LibraryFile.complexity_score.in_(score))
 
-            function_names = [result[0] for result in query.all()]
+        function_names = [result[0] for result in query.all()]
 
         return function_names
 
     def clean_functions_in_DB(self, library_name):
-        with Session(self.engine) as session:
-            conditions = (
-                    LibraryFile.library_name == library_name,
-                    or_(
-                        LibraryFile.function_name == ('main'),
-                        LibraryFile.function_name.contains('init'),
-                        LibraryFile.function_name.contains('test'),
-                        LibraryFile.file_name == "__init__.py"
-                    )
-                )
-        session.query(LibraryFile).filter(*conditions).delete(synchronize_session='fetch')
-        session.commit()
-        
+        conditions = (
+            LibraryFile.library_name == library_name,
+            or_(
+                LibraryFile.function_name == 'main',
+                LibraryFile.function_name.contains('init'),
+                LibraryFile.function_name.contains('test'),
+                LibraryFile.file_name == '__init__.py'
+            )
+        )
+        self.session.query(LibraryFile).filter(*conditions).delete(synchronize_session='fetch')
+        self.session.commit()
+    
     def save_radon_result(self, library_name, file_name, language, file_path, function_name, file_line_start, file_line_end, score):
-        with Session(self.engine) as session:
-            existing_entry = session.query(LibraryFile).filter(
-                LibraryFile.library_name == library_name,
-                LibraryFile.file_name == file_name,
-                LibraryFile.function_name == function_name
-            ).first()
+        existing_entry = self.session.query(LibraryFile).filter(
+            LibraryFile.library_name == library_name,
+            LibraryFile.file_name == file_name,
+            LibraryFile.function_name == function_name
+        ).first()
 
-            if not existing_entry:
-                radon_result = LibraryFile(
-                    library_name=library_name,
-                    file_name=file_name,
-                    file_path=file_path,
-                    function_name=function_name,
-                    file_line_start=file_line_start,
-                    file_line_end=file_line_end,
-                    complexity_score=score,
-                    fuzz_test=False,
-                    language=language,
-                    type="radon"
-                )
-                session.add(radon_result)
-                session.commit()
+        if not existing_entry:
+            radon_result = LibraryFile(
+                library_name=library_name,
+                file_name=file_name,
+                file_path=file_path,
+                function_name=function_name,
+                file_line_start=file_line_start,
+                file_line_end=file_line_end,
+                complexity_score=score,
+                fuzz_test=False,
+                language=language,
+                type="radon"
+            )
+            self.session.add(radon_result)
+            self.session.commit()
 
     def __enter__(self):
         return self

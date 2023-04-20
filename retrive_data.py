@@ -1,6 +1,5 @@
 import argparse
 import sqlite3
-from pprint import pprint
 
 # Create the argument parser
 parser = argparse.ArgumentParser(description='Retrieve function names and contents from a SQLite database')
