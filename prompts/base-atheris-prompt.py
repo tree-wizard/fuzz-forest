@@ -88,6 +88,7 @@ if __name__ == "__main__":
     atheris.instrument_all()
     main()
 
+Make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested package.
 Make sure all fuzz test instrumented with the following code:
 
  def main():
@@ -97,5 +98,3 @@ Make sure all fuzz test instrumented with the following code:
 if __name__ == "__main__":
     atheris.instrument_all()
     main()
-
-
