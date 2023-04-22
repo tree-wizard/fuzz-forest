@@ -52,9 +52,9 @@ class LangFuzz:
         function_names = [func[0] for func in result if func[0] is not None]
         return function_names
     
-    def get_lib_fuzz_tests_from_db(self, library_name, runs=None):
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None):
         with self.db as db:
-            return db.get_lib_fuzz_tests_from_db(library_name, runs)
+            return db.get_lib_fuzz_tests_from_db(library_name, runs, exception)
 
     def get_radon_functions_from_db(self, lib_name, score=None):
         with self.db as db:
@@ -62,21 +62,23 @@ class LangFuzz:
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
-           directive = f"Return only valid, formated python code, no text. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
+           directive = f" Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
        else:
            directive = "Write a fuzz test for the following function:\n"
 
-       prompt = base_template + fuzzer_context + directive + "This is the source code for" + function_name + ":" + function_code
+       exception_check = "Review function source and make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested function." 
+       
+       prompt = base_template + fuzzer_context + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
        num_tokens = num_tokens_from_string(prompt)
 
-       if num_tokens <= 2400:
+       if num_tokens <= 2700:
            return prompt
 
        else:
-        prompt = base_template + directive + "This is the source code for" + function_name + ":" + function_code
+        prompt = base_template + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
         num_tokens = num_tokens_from_string(prompt)
         
-        if num_tokens <= 2400:
+        if num_tokens <= 2700:
             return prompt
 
        prompt = base_template + fuzzer_context + directive
@@ -93,8 +95,14 @@ class LangFuzz:
         # Use OpenAI GPT to generate a fixed version of the code
         # Modify the code to fix the problem
         # Return the updated code
-        prompt=f"Fix the following code:\n{code}\nOutput: {output} \n Return only the valid formatted python code, no text."
-
+        prompt = (
+        f"Please rewrite the following code to fix any issues or errors:\n\n"
+        f"---Code Starts---\n"
+        f"{code}\n"
+        f"---Code Ends---\n\n"
+        f"Output: {output}\n\n"
+        f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
+    )
         response = openai.ChatCompletion.create(
                 model='gpt-3.5-turbo',
                 messages=[
@@ -105,13 +113,15 @@ class LangFuzz:
         return response["choices"][0]["message"]["content"]
 
     def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
-        sucessful_run = 'Done 2 runs'
-        n = 0
-        while n < 10:
-            n += 1
-            updated_code = self.fix_code(function_code, output)
+        successful_run = 'Done 2 runs'
+        max_attempts = 10
+        updated_code = function_code
+
+        for _ in range(max_attempts):
+            updated_code = self.fix_code(updated_code, output)
             new_output = run_atheris_fuzzer(updated_code)
-            if sucessful_run in new_output:
+
+            if successful_run in new_output:
                 print('fixed')
                 return updated_code, new_output, True
             else:
@@ -157,7 +167,7 @@ class LangFuzz:
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, library_name, runs=True)
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, library_name, runs=True, exception=False)
 
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
@@ -169,7 +179,7 @@ class LangFuzz:
                 fuzzer_file.write(function.contents)
 
             command = f'python {fuzzer_file_path} -max_total_time={time}'
-            timeout = time / 60 + 5  # Convert time to minutes and add 5 minutes
+            timeout = time + 300  # add 5 minute timeout to catch hangs
 
             output, crash = self.run_fuzzer(command, timeout)
             exception = 'exception' in output.lower()

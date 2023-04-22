@@ -76,8 +76,7 @@ class Database:
             ).all()
         return functions
 
-    
-    def get_lib_fuzz_tests_from_db(self, library_name, runs=None):
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None):
         create_tables(self.engine)
         query = self.session.query(GeneratedFile).filter(
             GeneratedFile.library_name == library_name,
@@ -85,6 +84,9 @@ class Database:
         )
         if runs is not None:
             query = query.filter(GeneratedFile.runs == runs)
+
+        if exception is not None:
+            query = query.filter(GeneratedFile.exception == exception)
 
         fuzz_tests = query.all()
         return fuzz_tests

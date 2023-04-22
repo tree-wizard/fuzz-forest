@@ -18,14 +18,6 @@ http_libs = {
         'github': 'https://github.com/urllib3/urllib3',
         'docs': 'https://urllib3.readthedocs.io/en/stable/'
     },
-    'aiohttp': 'https://github.com/aio-libs/aiohttp/',
-}
-
-libs = {
-    'urllib3': {
-        'github': 'https://github.com/urllib3/urllib3',
-        'docs': 'https://urllib3.readthedocs.io/en/stable/'
-    },
     'requests': {
         'github': 'https://github.com/psf/requests',
         'docs': 'https://requests.readthedocs.io/en/latest/'
@@ -37,6 +29,21 @@ libs = {
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
         'docs': 'https://docs.twisted.org/en/stable/'
+    }
+}
+
+libraries = {
+    'urllib3': {
+        'github': 'https://github.com/urllib3/urllib3',
+        'docs': 'https://urllib3.readthedocs.io/en/stable/'
+    },
+    'requests': {
+        'github': 'https://github.com/psf/requests',
+        'docs': 'https://requests.readthedocs.io/en/latest/'
+    },
+    'aiohttp': {
+        'github': 'https://github.com/aio-libs/aiohttp/',
+        'docs': 'https://docs.aiohttp.org/en/stable/'
     },
     'sqlalchemy': 'https://github.com/sqlalchemy/sqlalchemy',
     'PIL': 'https://github.com/python-pillow/Pillow',
