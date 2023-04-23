@@ -37,9 +37,9 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None):
         with self.db as db:
-            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents)
+            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored)
 
     def get_existing_fuzz_file_data(self, library_name):
         with self.db as db:
@@ -71,14 +71,14 @@ class LangFuzz:
        prompt = base_template + fuzzer_context + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
        num_tokens = num_tokens_from_string(prompt)
 
-       if num_tokens <= 2700:
+       if num_tokens < 2500:
            return prompt
 
        else:
         prompt = base_template + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
         num_tokens = num_tokens_from_string(prompt)
         
-        if num_tokens <= 2700:
+        if num_tokens <= 2500:
             return prompt
 
        prompt = base_template + fuzzer_context + directive
@@ -131,14 +131,15 @@ class LangFuzz:
 
     def fix_fuzz_test_code(self, library_name):
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=False)
+        print(len(fuzz_functions))
         for function in fuzz_functions:
             print("Fixing fuzz test code for", function.function_name)
             updated_code, output, runs = self.fix_fuzz_test(function.contents, function.run_output)
             #function to fix fuzz test code, returns fixed_code, run status, and output
             if runs == True:
-                self.update_fuzz_test_in_db(function.id, runs=True, run_output=str(output), contents=updated_code) #, refactored=True)
+                self.update_fuzz_test_in_db(function.id, runs=True, run_output=str(output), contents=updated_code, refactored=True)
             else:
-                self.update_fuzz_test_in_db(function.id, runs=False, run_output=str(output), contents=updated_code) #, refactored=True) 
+                self.update_fuzz_test_in_db(function.id, runs=False, run_output=str(output), contents=updated_code, refactored=True) 
 
     def run_fuzzer(self, command, timeout):
         try:
@@ -148,7 +149,8 @@ class LangFuzz:
             output = e.output
             crash = True
         except subprocess.TimeoutExpired:
-            output = "Timeout expired"
+            output = e.output.decode()
+            output += "Fuzzer Timeout"
             crash = True
 
         return output, crash
@@ -167,7 +169,7 @@ class LangFuzz:
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, library_name, runs=True, exception=False)
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, exception=False)
 
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
@@ -179,12 +181,12 @@ class LangFuzz:
                 fuzzer_file.write(function.contents)
 
             command = f'python {fuzzer_file_path} -max_total_time={time}'
-            timeout = time + 300  # add 5 minute timeout to catch hangs
+            timeout = time + 100  # add 2 minute timeout to catch hangs
 
             output, crash = self.run_fuzzer(command, timeout)
             exception = 'exception' in output.lower()
             cov = self.parse_coverage(output)
-
+            print(output)
             self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
 
     def initial_fuzz_analysis(self, lib):

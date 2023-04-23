@@ -46,7 +46,7 @@ class GeneratedFile(Base):
     tokens = Column(Integer)
     crash = Column(Boolean)
     exception= Column(Boolean)
-    #refactored = Column(Boolean)
+    refactored = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -109,13 +109,14 @@ class Database:
                 coverage=None,
                 cycles=None,
                 tokens=tokens,
-                exception=False
+                exception=False,
+                refactored=False
             )
 
             self.session.add(generated_file)
             self.session.commit()
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None):
         fuzz_test = self.session.query(GeneratedFile).filter_by(id=id).first()
         if runs is not None:
             fuzz_test.runs = runs
@@ -129,10 +130,9 @@ class Database:
             fuzz_test.crash = crash
         if contents is not None:
             fuzz_test.contents = contents
-        self.session.commit()
-#        if refactored is not None:
-#            fuzz_test.refactored = refactored
-        
+        if refactored is not None:
+            fuzz_test.refactored = refactored
+        self.session.commit()        
 
     def get_existing_fuzz_file_data(self, library_name):
         fuzz_files = self.session.query(LibraryFile.file_name, LibraryFile.function_name, LibraryFile.contents).filter_by(library_name=library_name, fuzz_test=True).all()

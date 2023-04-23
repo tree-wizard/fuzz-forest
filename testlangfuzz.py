@@ -66,26 +66,26 @@ libraries = {
 #langfuzz.extended_fuzz_analysis(lib)
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional, if you don't pass it, it will pull all the functions
-radon_score = ['C', 'D', 'E', 'F']
-
+#radon_score = ['C', 'D', 'E', 'F']
+#priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
 
 # First pass
-for library_name in http_libs.keys():
-    print(library_name)
-    priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+for library_name in libraries.keys():
+    #print(library_name)   
     #print("Getting functions that contain string 'parse'")
     #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    print("Generating fuzz tests")
-    langfuzz.generate_fuzz_tests(library_name, priority_funcs)
-    print("Running initial fuzz analysis")
-    langfuzz.initial_fuzz_analysis(library_name)
-    print("Fixing fuzz test code")
-    langfuzz.fix_fuzz_test_code(library_name) 
-    #langfuzz.extended_fuzz_analysis(library_name, 200)
+    #print("Generating fuzz tests")
+    #langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    #print("Running initial fuzz analysis")
+    #langfuzz.initial_fuzz_analysis(library_name)
+    #print("Fixing fuzz test code")
+    #langfuzz.fix_fuzz_test_code(library_name) 
+    print("Running extended fuzz analysis")
+    langfuzz.extended_fuzz_analysis(library_name, 1200)
 
 # Second pass
 #for library_name in libs.keys():
