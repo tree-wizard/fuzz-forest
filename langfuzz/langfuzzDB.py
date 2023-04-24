@@ -47,6 +47,7 @@ class GeneratedFile(Base):
     crash = Column(Boolean)
     exception= Column(Boolean)
     refactored = Column(Boolean)
+    instrumented = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -76,7 +77,7 @@ class Database:
             ).all()
         return functions
 
-    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None):
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None, refactored=None, instrumented=None):
         create_tables(self.engine)
         query = self.session.query(GeneratedFile).filter(
             GeneratedFile.library_name == library_name,
@@ -88,6 +89,12 @@ class Database:
         if exception is not None:
             query = query.filter(GeneratedFile.exception == exception)
 
+        if refactored is not None:
+            query = query.filter(GeneratedFile.refactored == refactored)
+
+        if instrumented is not None:
+            query = query.filter(GeneratedFile.instrumented == instrumented)
+        
         fuzz_tests = query.all()
         return fuzz_tests
 
@@ -116,7 +123,7 @@ class Database:
             self.session.add(generated_file)
             self.session.commit()
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
         fuzz_test = self.session.query(GeneratedFile).filter_by(id=id).first()
         if runs is not None:
             fuzz_test.runs = runs
@@ -132,6 +139,8 @@ class Database:
             fuzz_test.contents = contents
         if refactored is not None:
             fuzz_test.refactored = refactored
+        if instrumented is not None:
+            fuzz_test.instrumented = instrumented
         self.session.commit()        
 
     def get_existing_fuzz_file_data(self, library_name):
@@ -140,6 +149,11 @@ class Database:
 
     def get_functions_that_contain_string(self, library_name, search_string):
         results = self.session.query(LibraryFile.function_name).filter(LibraryFile.library_name == library_name).filter(LibraryFile.function_name.contains(search_string)).all()
+        return results
+    
+    def get_generated_functions_that_contain_string_in_contents(self, search_string):
+
+        results = self.session.query(GeneratedFile).filter(GeneratedFile.contents.contains(search_string)).all()
         return results
     
     def generated_file_exists(self, library_name, function_name):

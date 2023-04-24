@@ -37,14 +37,18 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
         with self.db as db:
-            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored)
+            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored, instrumented)
 
     def get_existing_fuzz_file_data(self, library_name):
         with self.db as db:
             return db.get_existing_fuzz_file_data(library_name)
         
+    def get_generated_functions_that_contain_string_in_contents(self, search_string):
+        with self.db as db:
+            return db.get_generated_functions_that_contain_string_in_contents(search_string)
+    
     def get_functions_that_contain_string(self, library_name, search_string):
         with self.db as db:
             result = db.get_functions_that_contain_string(library_name, search_string)
@@ -52,13 +56,20 @@ class LangFuzz:
         function_names = [func[0] for func in result if func[0] is not None]
         return function_names
     
-    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None):
+    def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None, refactored=None, instrumented=None):
         with self.db as db:
-            return db.get_lib_fuzz_tests_from_db(library_name, runs, exception)
+            return db.get_lib_fuzz_tests_from_db(library_name, runs, exception, refactored, instrumented)
 
     def get_radon_functions_from_db(self, lib_name, score=None):
         with self.db as db:
             return db.get_radon_functions_from_db(lib_name, score)
+
+    def check_instrumentation(self):
+        functions = self.get_generated_functions_that_contain_string_in_contents("atheris.instrument_all()")
+        for function in functions:
+            print(function.function_name)
+            #mark as instrumented
+            self.update_fuzz_test_in_db(function.id, instrumented=True)
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
@@ -131,7 +142,6 @@ class LangFuzz:
 
     def fix_fuzz_test_code(self, library_name):
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=False)
-        print(len(fuzz_functions))
         for function in fuzz_functions:
             print("Fixing fuzz test code for", function.function_name)
             updated_code, output, runs = self.fix_fuzz_test(function.contents, function.run_output)
@@ -151,7 +161,7 @@ class LangFuzz:
         except subprocess.TimeoutExpired:
             output = e.output.decode()
             output += "Fuzzer Timeout"
-            crash = True
+            crash = False
 
         return output, crash
 
@@ -165,11 +175,11 @@ class LangFuzz:
 
         return cov
 
-    def extended_fuzz_analysis(self, library_name, time=20000):
+    def extended_fuzz_analysis(self, library_name, time=20000, refactored=None, instrumented=None):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, exception=False)
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, refactored=refactored, instrumented=instrumented)
 
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
@@ -189,10 +199,10 @@ class LangFuzz:
             print(output)
             self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
 
-    def initial_fuzz_analysis(self, lib):
-        fuzz_functions = self.get_lib_fuzz_tests_from_db(self.sqlitedb, lib)
+    def initial_fuzz_analysis(self, library):
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name=library, runs=False, exception=False)
+        print(len(fuzz_functions))
         for function in fuzz_functions:
-            #id, file_name, function_name, contents = file
             print(function.function_name)
             output = run_atheris_fuzzer(function.contents)
 

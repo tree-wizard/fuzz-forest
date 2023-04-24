@@ -1,9 +1,5 @@
 from langfuzz.langfuzz import LangFuzz
 from langfuzz.langfuzz_recon import LangFuzzRecon
-from langfuzz.langfuzzDB import Database
-from langfuzz.langfuzzDB import GeneratedFile, Library, LibraryFile, create_tables, get_engine
-from sqlalchemy.orm import Session
-
 
 #os.environ["OPENAI_API_KEY"] = "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"
 #openai.api_key = "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"
@@ -66,26 +62,29 @@ libraries = {
 #langfuzz.extended_fuzz_analysis(lib)
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional, if you don't pass it, it will pull all the functions
 #radon_score = ['C', 'D', 'E', 'F']
 #priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+langfuzz.check_instrumentation()
 
 # First pass
-for library_name in libraries.keys():
-    #print(library_name)   
+for library_name in http_libs.keys():
+    print(library_name)   
     #print("Getting functions that contain string 'parse'")
-    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    #parse_functions = langfuzz.get_functions_that_contain_string#(library_name, 'parse')
     #print("Generating fuzz tests")
     #langfuzz.generate_fuzz_tests(library_name, parse_functions)
     #print("Running initial fuzz analysis")
     #langfuzz.initial_fuzz_analysis(library_name)
     #print("Fixing fuzz test code")
-    #langfuzz.fix_fuzz_test_code(library_name) 
+    #langfuzz.fix_fuzz_test_code(library_name)
+    # langfuzz.check_instrumentation() 
     print("Running extended fuzz analysis")
-    langfuzz.extended_fuzz_analysis(library_name, 1200)
+    #langfuzz.extended_fuzz_analysis(library_name, 1200)
+    langfuzz.extended_fuzz_analysis(library_name, 1200, instrumented=True)
 
 # Second pass
 #for library_name in libs.keys():

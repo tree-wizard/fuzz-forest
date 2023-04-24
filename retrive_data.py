@@ -14,7 +14,7 @@ conn = sqlite3.connect(args.database)
 cursor = conn.cursor()
 
 # Execute the query
-query = f"SELECT function_name, contents FROM {args.table};"
+query = f"SELECT function_name, run_output FROM {args.table};"
 cursor.execute(query)
 
 # Fetch all the results
