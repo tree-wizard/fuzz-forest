@@ -23,7 +23,7 @@ class LangFuzz:
 
     def generate_fuzz_code(self, prompt):
         response = openai.ChatCompletion.create(
-            model='gpt-3.5-turbo',
+            model='gpt-4',
             messages=[
                 {"role": "system", "content": prompt}],
             max_tokens=1550,
@@ -73,7 +73,7 @@ class LangFuzz:
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
        if self.language == 'python':
-           directive = f" Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
+           directive = f"Return ONLY valid and properly formatted Python code. Do NOT include any comments, explanations or notes. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
        else:
            directive = "Write a fuzz test for the following function:\n"
 
@@ -129,6 +129,7 @@ class LangFuzz:
         updated_code = function_code
 
         for _ in range(max_attempts):
+            print(f'fixing code, attempt {_}')
             updated_code = self.fix_code(updated_code, output)
             new_output = run_atheris_fuzzer(updated_code)
 

@@ -90,7 +90,7 @@ if __name__ == "__main__":
     atheris.instrument_all()
     main()
 
-IMPORTANT: ALWAYS use atheris.instrument_all() before calling main() to ensure that coverage is collected. This is required for coverage to work.
+IMPORTANT: ALWAYS use atheris.instrument_all() before calling main() to ensure that coverage is collected. This is required for coverage to work. Also make sure all imported modules have the correct attributes.
 
  def main():
     atheris.Setup(sys.argv, TestOneInput)

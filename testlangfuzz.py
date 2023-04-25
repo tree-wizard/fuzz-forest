@@ -25,6 +25,10 @@ http_libs = {
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
         'docs': 'https://docs.twisted.org/en/stable/'
+    },
+    'cryptography': {
+        'github': 'https://github.com/pyca/cryptography',
+        'docs': 'https://cryptography.io/en/latest/'
     }
 }
 
@@ -43,7 +47,7 @@ libraries = {
     },
     'sqlalchemy': 'https://github.com/sqlalchemy/sqlalchemy',
     'PIL': 'https://github.com/python-pillow/Pillow',
-    'babel': 'https://github.com/python-babel/babel',
+   # 'babel': 'https://github.com/python-babel/babel',
     'yaml': 'https://github.com/yaml/pyyaml',
     'cryptography': {
         'github': 'https://github.com/pyca/cryptography',
@@ -53,90 +57,58 @@ libraries = {
     'boto3': 'https://github.com/boto/boto3',
     'rq': 'https://github.com/rq/rq'}
 
-# radon_score is optional, if you don't pass it, it will pull all the functions
-
-#priority_funcs = langfuzz.get_radon_functions_from_db('urllib3', radon_score)
-# Creates the fuzzers and saves in db
-#langfuzz.generate_fuzz_tests(lib, priority_funcs)
-#langfuzz.initial_fuzz_analysis(lib)
-#langfuzz.extended_fuzz_analysis(lib)
-
 # Recon to create the database with fuzzing data.
-#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
-# radon_score is optional, if you don't pass it, it will pull all the functions
-#radon_score = ['C', 'D', 'E', 'F']
-#priority_funcs = langfuzz.get_radon_functions_from_db(library_name, radon_score)
-langfuzz.check_instrumentation()
 
+# radon_score is optional
+#radon_score = ['C', 'D', 'E', 'F']
+#priority_funcs = langfuzz.get_radon_functions_from_db("cryptography", radon_score)
+load_functions = langfuzz.get_functions_that_contain_string("cryptography", 'load')
+langfuzz.generate_fuzz_tests("cryptography", load_functions)
+langfuzz.initial_fuzz_analysis("cryptography")
+langfuzz.fix_fuzz_test_code("cryptography")
+langfuzz.check_instrumentation()
+langfuzz.extended_fuzz_analysis("cryptography", 1200, instrumented=True)
+
+"""
 # First pass
 for library_name in http_libs.keys():
     print(library_name)   
-    #print("Getting functions that contain string 'parse'")
-    #parse_functions = langfuzz.get_functions_that_contain_string#(library_name, 'parse')
-    #print("Generating fuzz tests")
-    #langfuzz.generate_fuzz_tests(library_name, parse_functions)
-    #print("Running initial fuzz analysis")
-    #langfuzz.initial_fuzz_analysis(library_name)
-    #print("Fixing fuzz test code")
-    #langfuzz.fix_fuzz_test_code(library_name)
-    # langfuzz.check_instrumentation() 
-    print("Running extended fuzz analysis")
-    #langfuzz.extended_fuzz_analysis(library_name, 1200)
+    print("Getting functions that contain string 'parse'")
+    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    print("Generating fuzz tests")
+    langfuzz.generate_fuzz_tests(library_name, parse_functions)
+
+# Initial fuzz pass
+for library_name in http_libs.keys():
+    print(library_name)
+    print("Running initial fuzz analysis")
+    langfuzz.initial_fuzz_analysis(library_name) 
+
+# Fixing non running fuzz tests
+for library_name in http_libs.keys():
+    print("Fixing fuzz test code")
+    langfuzz.fix_fuzz_test_code(library_name)
+
+
+# Running extended fuzz analysis
+for library_name in http_libs.keys():
+    print(library_name)
+    langfuzz.extended_fuzz_analysis(library_name, 200)
+
+# extended fuzz analysis pass on instrumented code
+for library_name in http_libs.keys():
+    print(library_name)
+    langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, 1200, instrumented=True)
 
-# Second pass
-#for library_name in libs.keys():
-#    print(library_name)
-#    langfuzz.fix_fuzz_test_code(library_name) 
-#    langfuzz.extended_fuzz_analysis(library_name, 200)
-
-# Analysis Pass
-#for library_name in libs.keys():
+# Triage Pass
+#for library_name in http_libs.keys():
 #    print(library_name)
 #    langfuzz.analyze_fuzz_coverage(library_name)
-#     langfuzz.triage_fuzz_crashes(library_name) 
-
-python = """for fizzbuzz in range(51):
-if fizzbuzz % 3 == 0 and fizzbuzz % 5 == 0:
-print("fizzbuzz")
-continue
-elif fizzbuz % 3 == 0:
-print("fizz")
-continue
-elif fizzbuzz % 5 == 0:
-print("buzz")
-continue
-print(fizzbuzz)
-"""
-code2 = """
-import atheris
-import sys
-
-@atheris.instrument_func
-def TestOneInput(data):
-    fdp = atheris.FuzzedDataProvider(data)
-    a = fdp.ConsumeInt(10)
-    b = fdp.ConsumeInt(10)
-    try:
-        add(a, b)
-    except:
-        pass
-
-def main():
-    atheris.Setup(sys.argv, TestOneInput)
-    atheris.Fuzz()
-
-if __name__ == "__main__":
-    main()
+#    langfuzz.triage_fuzz_crashes(library_name)]
 """
 
-"""
-fuzz_files = get_fuzz_tests_from_db(sqlitedb, lib)
-print('debug')
-for file in fuzz_files:
-    id, file_name, function_name, contents = file
-    print("+------------------------------------+")
-    print(function_name)
-"""
+
