@@ -37,6 +37,10 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
+    def get_fuzz_tests_by_filenames(self, functions_list, refactored=None, exception=None, instrumented=None):
+        with self.db as db:
+            return db.get_fuzz_tests_by_filenames(functions_list, refactored, exception, instrumented)
+    
     def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
         with self.db as db:
             db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored, instrumented)
@@ -176,11 +180,60 @@ class LangFuzz:
 
         return cov
 
-    def extended_fuzz_analysis(self, library_name, time=20000, refactored=None, instrumented=None):
+    def fuzz_functions_list(self, function_list, time=20000):
+        generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
+        os.makedirs(generated_files_path, exist_ok=True)
+        # get fuzz functions from db
+        for function in function_list:
+        #get function from db
+
+            function_path = os.path.join(generated_files_path, function.function_name)
+            os.makedirs(function_path, exist_ok=True)
+            print(function.contents)
+            fuzzer_file_path = os.path.join(function_path, function.file_name)
+
+            with open(fuzzer_file_path, 'w') as fuzzer_file:
+                fuzzer_file.write(function.contents)
+
+            command = f'python {fuzzer_file_path} -max_total_time={time}'
+            timeout = time + 100  # add 2 minute timeout to catch hangs
+
+            output, crash = self.run_fuzzer(command, timeout)
+            exception = 'exception' in output.lower()
+            cov = self.parse_coverage(output)
+            print(output)
+            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+
+    def extended_fuzz_analysis_by_filenames(self, functions_list, time=20000, refactored=None, exception=None, instrumented=None):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, refactored=refactored, instrumented=instrumented)
+        fuzz_functions = self.get_fuzz_tests_by_filenames(functions_list, refactored=refactored, exception=exception, instrumented=instrumented)
+
+        for function in fuzz_functions:
+            function_path = os.path.join(generated_files_path, function.function_name)
+            os.makedirs(function_path, exist_ok=True)
+            print(function.contents)
+            fuzzer_file_path = os.path.join(function_path, function.file_name)
+
+            with open(fuzzer_file_path, 'w') as fuzzer_file:
+                fuzzer_file.write(function.contents)
+
+            command = f'python {fuzzer_file_path} -max_total_time={time}'
+            timeout = time + 100  # add 2 minute timeout to catch hangs
+
+            output, crash = self.run_fuzzer(command, timeout)
+            exception = 'exception' in output.lower()
+            cov = self.parse_coverage(output)
+            print(output)
+            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+
+
+    def extended_fuzz_analysis(self, library_name, time=20000, refactored=None, exception=None, instrumented=None):
+        generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
+        os.makedirs(generated_files_path, exist_ok=True)
+
+        fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
 
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)

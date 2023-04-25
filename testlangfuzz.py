@@ -65,12 +65,12 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional
 #radon_score = ['C', 'D', 'E', 'F']
 #priority_funcs = langfuzz.get_radon_functions_from_db("cryptography", radon_score)
-load_functions = langfuzz.get_functions_that_contain_string("cryptography", 'load')
-langfuzz.generate_fuzz_tests("cryptography", load_functions)
-langfuzz.initial_fuzz_analysis("cryptography")
-langfuzz.fix_fuzz_test_code("cryptography")
-langfuzz.check_instrumentation()
-langfuzz.extended_fuzz_analysis("cryptography", 1200, instrumented=True)
+#load_functions = langfuzz.get_functions_that_contain_string("cryptography", 'load')
+#langfuzz.generate_fuzz_tests("cryptography", load_functions)
+#langfuzz.initial_fuzz_analysis("cryptography")
+#langfuzz.fix_fuzz_test_code("cryptography")
+#langfuzz.check_instrumentation()
+langfuzz.extended_fuzz_analysis("cryptography", 7500, exception=False)
 
 """
 # First pass

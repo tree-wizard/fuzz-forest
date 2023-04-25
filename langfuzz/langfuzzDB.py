@@ -77,6 +77,21 @@ class Database:
             ).all()
         return functions
 
+    def get_fuzz_tests_by_filenames(self, functions_list, refactored=None, exception=None, instrumented=None):
+        query = self.session.query(GeneratedFile).filter(GeneratedFile.file_name.in_(functions_list), GeneratedFile.fuzz_test == True)
+    
+        if refactored is not None:
+            query = query.filter(GeneratedFile.refactored == refactored)
+    
+        if exception is not None:
+            query = query.filter(GeneratedFile.exception == exception)
+    
+        if instrumented is not None:
+            query = query.filter(GeneratedFile.instrumented == instrumented)
+    
+        fuzz_tests = query.all()
+        return fuzz_tests
+
     def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None, refactored=None, instrumented=None):
         create_tables(self.engine)
         query = self.session.query(GeneratedFile).filter(
