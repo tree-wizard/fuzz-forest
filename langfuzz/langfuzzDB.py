@@ -78,7 +78,7 @@ class Database:
         return functions
 
     def get_fuzz_tests_by_filenames(self, functions_list, refactored=None, exception=None, instrumented=None):
-        query = self.session.query(GeneratedFile).filter(GeneratedFile.file_name.in_(functions_list), GeneratedFile.fuzz_test == True)
+        query = self.session.query(GeneratedFile).filter(GeneratedFile.function_name.in_(functions_list), GeneratedFile.fuzz_test == True)
     
         if refactored is not None:
             query = query.filter(GeneratedFile.refactored == refactored)

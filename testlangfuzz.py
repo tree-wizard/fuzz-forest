@@ -58,7 +58,7 @@ libraries = {
     'rq': 'https://github.com/rq/rq'}
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
@@ -70,7 +70,10 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 #langfuzz.initial_fuzz_analysis("cryptography")
 #langfuzz.fix_fuzz_test_code("cryptography")
 #langfuzz.check_instrumentation()
-langfuzz.extended_fuzz_analysis("cryptography", 7500, exception=False)
+#langfuzz.extended_fuzz_analysis("cryptography", 7500, exception=False)
+
+func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
+langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
 
 """
 # First pass

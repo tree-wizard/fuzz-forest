@@ -209,10 +209,10 @@ class LangFuzz:
         os.makedirs(generated_files_path, exist_ok=True)
 
         fuzz_functions = self.get_fuzz_tests_by_filenames(functions_list, refactored=refactored, exception=exception, instrumented=instrumented)
-
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
+            print(function.function_name)
             print(function.contents)
             fuzzer_file_path = os.path.join(function_path, function.file_name)
 

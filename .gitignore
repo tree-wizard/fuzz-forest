@@ -22,3 +22,6 @@ venv/
 .env/
 .envrc
 .env
+
+#Ignore mac directory
+.DS_Store
