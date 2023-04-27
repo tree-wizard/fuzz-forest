@@ -119,7 +119,7 @@ class LangFuzz:
         f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
     )
         response = openai.ChatCompletion.create(
-                model='gpt-3.5-turbo',
+                model='gpt-4',
                 messages=[
                     {"role": "system", "content": prompt}],
                 max_tokens=1550,
@@ -227,7 +227,6 @@ class LangFuzz:
             cov = self.parse_coverage(output)
             print(output)
             self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
-
 
     def extended_fuzz_analysis(self, library_name, time=20000, refactored=None, exception=None, instrumented=None):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')

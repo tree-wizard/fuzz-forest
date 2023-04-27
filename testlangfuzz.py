@@ -9,30 +9,15 @@ repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
 sqlitedb = 'langfuzz.db'
 
-http_libs = {
-    'urllib3': {
-        'github': 'https://github.com/urllib3/urllib3',
-        'docs': 'https://urllib3.readthedocs.io/en/stable/'
-    },
-    'requests': {
-        'github': 'https://github.com/psf/requests',
-        'docs': 'https://requests.readthedocs.io/en/latest/'
-    },
-    'aiohttp': {
-        'github': 'https://github.com/aio-libs/aiohttp/',
-        'docs': 'https://docs.aiohttp.org/en/stable/'
-    },
+libraries1 = { 
+    'babel': 'https://github.com/python-babel/babel',
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
         'docs': 'https://docs.twisted.org/en/stable/'
     },
-    'cryptography': {
-        'github': 'https://github.com/pyca/cryptography',
-        'docs': 'https://cryptography.io/en/latest/'
-    }
 }
 
-libraries = {
+libraries2 = {
     'urllib3': {
         'github': 'https://github.com/urllib3/urllib3',
         'docs': 'https://urllib3.readthedocs.io/en/stable/'
@@ -47,7 +32,6 @@ libraries = {
     },
     'sqlalchemy': 'https://github.com/sqlalchemy/sqlalchemy',
     'PIL': 'https://github.com/python-pillow/Pillow',
-   # 'babel': 'https://github.com/python-babel/babel',
     'yaml': 'https://github.com/yaml/pyyaml',
     'cryptography': {
         'github': 'https://github.com/pyca/cryptography',
@@ -72,8 +56,8 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 #langfuzz.check_instrumentation()
 #langfuzz.extended_fuzz_analysis("cryptography", 7500, exception=False)
 
-func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
-langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
+#func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
+#langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
 
 """
 # First pass
