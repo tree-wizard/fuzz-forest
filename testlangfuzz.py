@@ -9,7 +9,7 @@ repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
 sqlitedb = 'langfuzz.db'
 
-libraries1 = { 
+libraries2 = { 
     'babel': 'https://github.com/python-babel/babel',
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
@@ -17,7 +17,7 @@ libraries1 = {
     },
 }
 
-libraries2 = {
+libraries1 = {
     'urllib3': {
         'github': 'https://github.com/urllib3/urllib3',
         'docs': 'https://urllib3.readthedocs.io/en/stable/'
@@ -42,7 +42,7 @@ libraries2 = {
     'rq': 'https://github.com/rq/rq'}
 
 # Recon to create the database with fuzzing data.
-#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, http_libs, 'python')
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
@@ -59,32 +59,33 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 #func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
 #langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
 
-"""
+
 # First pass
-for library_name in http_libs.keys():
+print("Generating fuzz tests")
+for library_name in libraries1.keys():
     print(library_name)   
-    print("Getting functions that contain string 'parse'")
-    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    print("Generating fuzz tests")
-    langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    #print("Getting functions that contain string 'parse'")
+    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    langfuzz.generate_fuzz_tests(library_name)
 
 # Initial fuzz pass
-for library_name in http_libs.keys():
+print("Running initial fuzz analysis")
+for library_name in libraries1.keys():
     print(library_name)
-    print("Running initial fuzz analysis")
     langfuzz.initial_fuzz_analysis(library_name) 
 
 # Fixing non running fuzz tests
-for library_name in http_libs.keys():
-    print("Fixing fuzz test code")
+print("Fixing fuzz test code")
+for library_name in libraries1.keys():
+    print(library_name)
     langfuzz.fix_fuzz_test_code(library_name)
 
-
 # Running extended fuzz analysis
-for library_name in http_libs.keys():
+print("Running extended fuzz analysis")
+for library_name in libraries1.keys():
     print(library_name)
     langfuzz.extended_fuzz_analysis(library_name, 200)
-
+"""
 # extended fuzz analysis pass on instrumented code
 for library_name in http_libs.keys():
     print(library_name)
