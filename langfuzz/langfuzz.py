@@ -23,7 +23,7 @@ class LangFuzz:
 
     def generate_fuzz_code(self, prompt):
         response = openai.ChatCompletion.create(
-            model='gpt-4',
+            model='gpt-3.5-turbo',
             messages=[
                 {"role": "system", "content": prompt}],
             max_tokens=1550,
@@ -119,7 +119,7 @@ class LangFuzz:
         f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
     )
         response = openai.ChatCompletion.create(
-                model='gpt-4',
+                model='gpt-3.5-turbo',
                 messages=[
                     {"role": "system", "content": prompt}],
                 max_tokens=1550,
