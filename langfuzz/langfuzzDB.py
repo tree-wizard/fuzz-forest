@@ -69,11 +69,13 @@ class Database:
         if function_list is not None:
             functions = self.session.query(LibraryFile).filter(
                 LibraryFile.library_name == library_name,
-                LibraryFile.function_name.in_(function_list)
+                LibraryFile.function_name.in_(function_list),
+                LibraryFile.type == 'radon'
             ).all()
         else:
             functions = self.session.query(LibraryFile).filter(
-                LibraryFile.library_name == library_name
+                LibraryFile.library_name == library_name,
+                LibraryFile.type == 'radon'
             ).all()
         return functions
 
@@ -167,7 +169,6 @@ class Database:
         return results
     
     def get_generated_functions_that_contain_string_in_contents(self, search_string):
-
         results = self.session.query(GeneratedFile).filter(GeneratedFile.contents.contains(search_string)).all()
         return results
     
@@ -200,7 +201,9 @@ class Database:
                 LibraryFile.function_name == 'main',
                 LibraryFile.function_name.contains('init'),
                 LibraryFile.function_name.contains('test'),
-                LibraryFile.file_name == '__init__.py'
+                LibraryFile.file_name == '__init__.py',
+                LibraryFile.contents.contains('deprecated'),
+                LibraryFile.contents.op('REGEXP')(r'def \w+\(\)')
             )
         )
         self.session.query(LibraryFile).filter(*conditions).delete(synchronize_session='fetch')

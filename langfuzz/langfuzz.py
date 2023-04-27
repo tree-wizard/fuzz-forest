@@ -76,35 +76,29 @@ class LangFuzz:
             self.update_fuzz_test_in_db(function.id, instrumented=True)
 
     def create_prompt(self, base_template, fuzzer_context, library_name, function_name, function_code):
-       if self.language == 'python':
-           directive = f"Return ONLY valid and properly formatted Python code. Do NOT include any comments, explanations or notes. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
-       else:
-           directive = "Write a fuzz test for the following function:\n"
+        if self.language == 'python':
+            directive = f"Return ONLY valid and properly formatted Python code. Do NOT include any comments, explanations or notes. Import the {library_name} and write an atheris fuzz test for the {function_name} function in {library_name}:\n"
+        else:
+            directive = "Write a fuzz test for the following function:\n"
 
-       exception_check = "Review function source and make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested function." 
-       
-       prompt = base_template + fuzzer_context + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
-       num_tokens = num_tokens_from_string(prompt)
+        exception_check = "Review function source and make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested function." 
 
-       if num_tokens < 2500:
-           return prompt
+        prompt = base_template
+        if fuzzer_context is not None:
+            prompt += fuzzer_context
+        prompt += directive + "This is the source code for" + function_name + ":" + function_code + exception_check
 
-       else:
-        prompt = base_template + directive + "This is the source code for" + function_name + ":" + function_code + exception_check
         num_tokens = num_tokens_from_string(prompt)
-        
-        if num_tokens <= 2500:
+
+        if num_tokens < 2500:
             return prompt
+        else:
+            prompt = base_template + directive + exception_check
+        
+        num_tokens = num_tokens_from_string(prompt)
 
-       prompt = base_template + fuzzer_context + directive
-       num_tokens = num_tokens_from_string(prompt)
-
-       if num_tokens <= 2400:
-           return prompt
-
-       prompt = base_template + directive
-
-       return prompt
+        if num_tokens <= 2400:
+            return prompt
 
     def fix_code(self, code: str, output: str) -> str:
         # Use OpenAI GPT to generate a fixed version of the code

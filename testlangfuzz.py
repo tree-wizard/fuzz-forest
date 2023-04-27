@@ -65,7 +65,11 @@ print("Generating fuzz tests")
 for library_name in libraries1.keys():
     print(library_name)   
     #print("Getting functions that contain string 'parse'")
-    #parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
+    format_functions = langfuzz.get_functions_that_contain_string(library_name, 'format')
+    load_functions = langfuzz.get_functions_that_contain_string(library_name, 'load')
+    encode_functions = langfuzz.get_functions_that_contain_string(library_name, 'encode')
+    decode_functions = langfuzz.get_functions_that_contain_string(library_name, 'decode')
     langfuzz.generate_fuzz_tests(library_name)
 
 # Initial fuzz pass
