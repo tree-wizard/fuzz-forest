@@ -15,6 +15,16 @@ libraries2 = {
         'github': 'https://github.com/twisted/twisted',
         'docs': 'https://docs.twisted.org/en/stable/'
     },
+    'scrapy' : 'https://github.com/scrapy/scrapy',
+    'flask': 'https://github.com/pallets/flask',
+    'tornado': 'https://github.com/tornadoweb/tornado',
+    'django': 'https://github.com/django/django',
+    'scipy': 'https://github.com/scipy/scipy',
+    'numpy': 'https://github.com/numpy/numpy',
+    'pytorch': 'https://github.com/pytorch/pytorch',
+    'beautifulsoup4': 'https://github.com/wention/BeautifulSoup4',
+    'idna': 'https://github.com/kjd/idna',
+    'charset_normalizer': 'https://github.com/Ousret/charset_normalizer'
 }
 
 libraries1 = {
@@ -70,7 +80,13 @@ for library_name in libraries1.keys():
     load_functions = langfuzz.get_functions_that_contain_string(library_name, 'load')
     encode_functions = langfuzz.get_functions_that_contain_string(library_name, 'encode')
     decode_functions = langfuzz.get_functions_that_contain_string(library_name, 'decode')
-    langfuzz.generate_fuzz_tests(library_name)
+    serialze_functions = langfuzz.get_functions_that_contain_string(library_name, 'serialize')
+    langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    langfuzz.generate_fuzz_tests(library_name, format_functions)
+    langfuzz.generate_fuzz_tests(library_name, load_functions)
+    langfuzz.generate_fuzz_tests(library_name, encode_functions)
+    langfuzz.generate_fuzz_tests(library_name, decode_functions)
+    langfuzz.generate_fuzz_tests(library_name, serialze_functions)
 
 # Initial fuzz pass
 print("Running initial fuzz analysis")

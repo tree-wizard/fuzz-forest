@@ -22,14 +22,28 @@ class LangFuzz:
             raise Exception(f"Language {self.language} not supported.")
 
     def generate_fuzz_code(self, prompt):
-        response = openai.ChatCompletion.create(
-            model='gpt-3.5-turbo',
-            messages=[
-                {"role": "system", "content": prompt}],
-            max_tokens=1550,
-            temperature=0.6,
-        )
-        return response["choices"][0]["message"]["content"]
+        max_retries = 5
+        retry_delay = 5
+
+        for _ in range(max_retries):
+            try:
+                response = openai.ChatCompletion.create(
+                    model='gpt-3.5-turbo',
+                    messages=[
+                        {"role": "system", "content": prompt}],
+                    max_tokens=1550,
+                    temperature=0.6,
+                )
+                return response["choices"][0]["message"]["content"]
+            except openai.error.RateLimitError as e:
+                print(f"Rate limit error encountered: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            except openai.error.APIConnectionError as e:
+                print(f"Connection error encountered: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+
+        print("Failed to generate fuzz code after multiple retries.")
+        return None
 
     def save_fuzz_test_to_db(self, library_name, function_name, fuzz_test_code):
         file_name = 'fuzz_' + function_name + '.py'
@@ -101,42 +115,50 @@ class LangFuzz:
             return prompt
 
     def fix_code(self, code: str, output: str) -> str:
-        # Use OpenAI GPT to generate a fixed version of the code
-        # Modify the code to fix the problem
-        # Return the updated code
-        prompt = (
-        f"Please rewrite the following code to fix any issues or errors:\n\n"
-        f"---Code Starts---\n"
-        f"{code}\n"
-        f"---Code Ends---\n\n"
-        f"Output: {output}\n\n"
-        f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
-    )
-        response = openai.ChatCompletion.create(
-                model='gpt-3.5-turbo',
-                messages=[
-                    {"role": "system", "content": prompt}],
-                max_tokens=1550,
-                temperature=0.6,
-            )
-        return response["choices"][0]["message"]["content"]
+        retry_delay = 10
+    
+        while True:
+            try:
+                prompt = (
+                    f"Please rewrite the following code to fix any issues or errors:\n\n"
+                    f"---Code Starts---\n"
+                    f"{code}\n"
+                    f"---Code Ends---\n\n"
+                    f"Output: {output}\n\n"
+                    f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
+                )
+                response = openai.ChatCompletion.create(
+                    model='gpt-3.5-turbo',
+                    messages=[
+                        {"role": "system", "content": prompt}],
+                    max_tokens=1550,
+                    temperature=0.6,
+                )
+                return response["choices"][0]["message"]["content"]
+            except openai.error.RateLimitError as e:
+                print(f"Rate limit error encountered: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            except openai.error.APIConnectionError as e:
+                print(f"Connection error encountered: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
 
     def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
         successful_run = 'Done 2 runs'
         max_attempts = 10
         updated_code = function_code
 
-        for _ in range(max_attempts):
-            print(f'fixing code, attempt {_}')
-            updated_code = self.fix_code(updated_code, output)
-            new_output = run_atheris_fuzzer(updated_code)
+        if num_tokens_from_string(function_code + output) < 2500:
+            for attempt in range(max_attempts):
+                print(f'fixing code, attempt {attempt}')
+                updated_code = self.fix_code(updated_code, output)
+                new_output = run_atheris_fuzzer(updated_code)
 
-            if successful_run in new_output:
-                print('fixed')
-                return updated_code, new_output, True
-            else:
-                output = new_output
-                time.sleep(1)
+                if successful_run in new_output:
+                    print('fixed')
+                    return updated_code, new_output, True
+                else:
+                    output = new_output
+                    time.sleep(1)
         return updated_code, output, False
 
     def fix_fuzz_test_code(self, library_name):
@@ -276,11 +298,10 @@ class LangFuzz:
         for function in functions:
             complete_prompt = self.create_prompt(base_template, fuzzer_context, library_name, function.function_name, function.contents)
             if not self.db.generated_file_exists(library_name, function.function_name):
-                fuzz_test_code = self.generate_fuzz_code(complete_prompt)
-                #print("=" * 50)
                 print(function.function_name)
-                #print(fuzz_test_code)
-                self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
+                fuzz_test_code = self.generate_fuzz_code(complete_prompt)
+                if fuzz_test_code is not None:
+                    self.save_fuzz_test_to_db(library_name, function.function_name, fuzz_test_code)
 
 if __name__ == "__main__":
     http_libs = {

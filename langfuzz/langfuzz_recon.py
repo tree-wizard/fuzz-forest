@@ -32,6 +32,7 @@ class LangFuzzRecon:
         self.radon_analysis(target_libraries)
         self.get_code_all_functions(target_libraries)
         self.clean_functions_in_DB(target_libraries)
+        self.install_dependencies(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -117,6 +118,15 @@ class LangFuzzRecon:
             print(f"Function {function_name} not found in {library_name}/{file_name}")
 
         session.close()
+
+    def install_dependencies(self, libraries_info):
+        for library_name in libraries_info.keys():
+            path = os.path.join(self.repo_path, library_name)
+            if os.path.exists(path):
+                print(f"Installing dependencies for {library_name}...")
+                os.system(f"cd {path} && pip3 install -r requirements.txt")
+            else:
+                print(f"{library_name} Repo does not exist")
 
     def get_function_code(self, file_path, file_line_start, file_line_end):
       with open(file_path, 'r') as f:
