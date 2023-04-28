@@ -179,7 +179,7 @@ class LangFuzz:
         except subprocess.CalledProcessError as e:
             output = e.output
             crash = True
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             output = e.output.decode()
             output += "Fuzzer Timeout"
             crash = False
