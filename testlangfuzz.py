@@ -1,8 +1,6 @@
 from langfuzz.langfuzz import LangFuzz
 from langfuzz.langfuzz_recon import LangFuzzRecon
 
-#os.environ["OPENAI_API_KEY"] = "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"
-#openai.api_key = "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"
 
 lib = 'urllib3'
 repo_path = 'saved_repos'

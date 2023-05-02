@@ -31,13 +31,12 @@ libraries2 = {
 }
 
 #langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries2, 'python')
-
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
-radon_score = ['D', 'E', 'F']
+
+
 # In this approach we are going to individually desribe the fuzz tests we want to generate
-
 fuzzer_count = 0
-
+radon_score = ['D', 'E', 'F']
 print("Generating Babel fuzz tests")
 library_name = 'babel'
 function_list = []
@@ -188,33 +187,9 @@ fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
 print(fuzzer_count)
-"""
-for library_name in libraries2.keys():
-    print(library_name)   
-    #print("Getting functions that contain string 'parse'")
-    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-    count += len(parse_functions)
-    print(len(parse_functions))
-    decode_functions = langfuzz.get_functions_that_contain_string(library_name, 'decode')
-    count += len(decode_functions)
-    print(len(decode_functions))
-    serialze_functions = langfuzz.get_functions_that_contain_string(library_name, 'serialize')
-    count += len(serialze_functions)
-    print(len(serialze_functions))
-    langfuzz.generate_fuzz_tests(library_name, parse_functions)
-#    langfuzz.generate_fuzz_tests(library_name, format_functions)
-#    langfuzz.generate_fuzz_tests(library_name, load_functions)
-#    #langfuzz.generate_fuzz_tests(library_name, encode_functions)
-    langfuzz.generate_fuzz_tests(library_name, decode_functions)
-    langfuzz.generate_fuzz_tests(library_name, serialze_functions)
-
-
-
 
 
 print("Running initial fuzz analysis")
 for library_name in libraries2.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
-
-    """
