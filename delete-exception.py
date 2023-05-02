@@ -13,6 +13,11 @@ DELETE FROM generated_files
 WHERE contents LIKE '%except Exception as e%';
 """
 
+delete_query = """
+DELETE FROM generated_files
+WHERE run_output LIKE '%deprecated%';
+"""
+
 cursor.execute(delete_query)
 conn.commit()
 

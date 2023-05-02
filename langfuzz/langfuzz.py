@@ -51,9 +51,9 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-    def get_fuzz_tests_by_filenames(self, functions_list, refactored=None, exception=None, instrumented=None):
+    def get_fuzz_tests_by_filenames(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
         with self.db as db:
-            return db.get_fuzz_tests_by_filenames(functions_list, refactored, exception, instrumented)
+            return db.get_fuzz_tests_by_filenames(functions_list, runs, refactored, exception, instrumented)
     
     def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
         with self.db as db:
@@ -144,7 +144,7 @@ class LangFuzz:
 
     def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
         successful_run = 'Done 2 runs'
-        max_attempts = 10
+        max_attempts = 5
         updated_code = function_code
 
         if num_tokens_from_string(function_code + output) < 2500:
@@ -224,7 +224,7 @@ class LangFuzz:
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
 
-        fuzz_functions = self.get_fuzz_tests_by_filenames(functions_list, refactored=refactored, exception=exception, instrumented=instrumented)
+        fuzz_functions = self.get_fuzz_tests_by_filenames(functions_list, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
@@ -279,6 +279,8 @@ class LangFuzz:
                 self.update_fuzz_test_in_db(function.id, runs=True, run_output=output)
             elif 'Exception' in output:
                 self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, exception=True)
+        #   elif 'deprecated' in output:
+        #       self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, deprecated=True)
             else:
                 self.update_fuzz_test_in_db(function.id, runs=False, run_output=output)
 

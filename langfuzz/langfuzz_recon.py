@@ -2,7 +2,8 @@ import os
 import git
 import subprocess
 import sqlite3
-import re
+import sys
+import importlib
 import json
 
 from .langfuzzDB import Database, Library, LibraryFile, create_tables, get_engine
@@ -32,7 +33,7 @@ class LangFuzzRecon:
         self.radon_analysis(target_libraries)
         self.get_code_all_functions(target_libraries)
         self.clean_functions_in_DB(target_libraries)
-        #self.install_dependencies(target_libraries)
+        self.install_dependencies(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -121,12 +122,15 @@ class LangFuzzRecon:
 
     def install_dependencies(self, libraries_info):
         for library_name in libraries_info.keys():
-            path = os.path.join(self.repo_path, library_name)
-            if os.path.exists(path):
-                print(f"Installing dependencies for {library_name}...")
-                os.system(f"cd {path} && pip3 install -r requirements.txt")
-            else:
-                print(f"{library_name} Repo does not exist")
+            try:
+                # Check if the library is already installed
+                importlib.import_module(library_name)
+                print(f"{library_name} is already installed.")
+            except ImportError:
+             # If not installed, install the library using pip
+                print(f"Installing {library_name}...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
+                print(f"{library_name} installed successfully.")
 
     def get_function_code(self, file_path, file_line_start, file_line_end):
       with open(file_path, 'r') as f:

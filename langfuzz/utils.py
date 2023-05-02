@@ -19,14 +19,14 @@ def run_atheris_fuzzer(input_text: str) -> str:
             [sys.executable, "fuzz_test.py", "-runs=2"],
             stderr=subprocess.STDOUT,
             text=True,
-            timeout=20
+            timeout=200
         )
     except subprocess.CalledProcessError as e:
         output = e.output
     except subprocess.TimeoutExpired as e:
         output = e.output.decode()
         # You can return a custom message or the partial output
-        output += "\nFuzzer timed out after 20 seconds."
+        output += "\nFuzzer timed out after 200 seconds."
     finally:
         os.remove("fuzz_test.py")
     # Remove the first 7 lines of the output, which are the Atheris initialization logs

@@ -48,6 +48,7 @@ class GeneratedFile(Base):
     exception= Column(Boolean)
     refactored = Column(Boolean)
     instrumented = Column(Boolean)
+#   deprecated = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -79,9 +80,13 @@ class Database:
             ).all()
         return functions
 
-    def get_fuzz_tests_by_filenames(self, functions_list, refactored=None, exception=None, instrumented=None):
-        query = self.session.query(GeneratedFile).filter(GeneratedFile.function_name.in_(functions_list), GeneratedFile.fuzz_test == True)
+    def get_fuzz_tests_by_filenames(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
+        query = self.session.query(GeneratedFile).filter(
+            GeneratedFile.function_name.in_(functions_list), 
+            GeneratedFile.fuzz_test == True)
     
+        if runs is not None:
+            query = query.filter(GeneratedFile.runs == runs)
         if refactored is not None:
             query = query.filter(GeneratedFile.refactored == refactored)
     

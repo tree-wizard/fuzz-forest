@@ -103,7 +103,7 @@ print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, 2000, exception=False, instrumented=True)
+    langfuzz.extended_fuzz_analysis(library_name, 2000, exception=False, instrumented=True) # deprecated=False)
 """
 # extended fuzz analysis pass on instrumented code
 for library_name in http_libs.keys():
