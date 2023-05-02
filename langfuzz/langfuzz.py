@@ -28,7 +28,7 @@ class LangFuzz:
         for _ in range(max_retries):
             try:
                 response = openai.ChatCompletion.create(
-                    model='gpt-3.5-turbo',
+                    model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
                     max_tokens=1550,
@@ -95,7 +95,7 @@ class LangFuzz:
         else:
             directive = "Write a fuzz test for the following function:\n"
 
-        exception_check = "Review function source and make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested function." 
+        exception_check = "Review function source and make sure to catch and ignore any EXPECTED exceptions that may arise from passing invalid input to the tested function. Avoid the blanket 'except Exception' and make them specific to the function being tested, use source code as reference" 
 
         prompt = base_template
         if fuzzer_context is not None:
@@ -128,7 +128,7 @@ class LangFuzz:
                     f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
                 )
                 response = openai.ChatCompletion.create(
-                    model='gpt-3.5-turbo',
+                    model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
                     max_tokens=1550,

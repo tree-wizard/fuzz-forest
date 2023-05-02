@@ -32,7 +32,7 @@ class LangFuzzRecon:
         self.radon_analysis(target_libraries)
         self.get_code_all_functions(target_libraries)
         self.clean_functions_in_DB(target_libraries)
-        self.install_dependencies(target_libraries)
+        #self.install_dependencies(target_libraries)
 
     def download_oss_fuzz_repo(self):
         repo_dir = os.path.join(self.repo_path, 'oss-fuzz')
@@ -182,7 +182,7 @@ class LangFuzzRecon:
        radon_file_path = os.path.join(self.repo_path, "generated_files", "radon", radon_file_name)
 
        radon_output = subprocess.run(
-           ["radon", "cc", "--exclude", "*test*,*docs*", source_path, "-j"],
+           ["radon", "cc", "--exclude", "*test*,*docs*,*scripts*", source_path, "-j"],
            stdout=subprocess.PIPE,
            text=True,
            check=True
@@ -205,16 +205,18 @@ class LangFuzzRecon:
             file_name = file_path.split('/')[-1]
 
             for function in functions:
-                if function['type'] == 'function' and not function['name'].startswith('_'):
-                #    print(f"file_name={file_name}")
-                #    print(f"file_path={file_path}")
-                #    print(f"function_name={function['name']}")
-                #    print(f"file_line_start={function['lineno']}")
-                #    print(f"file_line_end={function['endline']}")
-                #    print(f"score={function['rank']}")
-                    self.save_radon_result(library_name, file_name, file_path, function['name'], function['lineno'], function['endline'], function['rank'])
+                try:
+                    if function['type'] == 'function' and not function['name'].startswith('_'):
+                    #    print(f"file_name={file_name}")
+                    #    print(f"file_path={file_path}")
+                    #    print(f"function_name={function['name']}")
+                    #    print(f"file_line_start={function['lineno']}")
+                    #    print(f"file_line_end={function['endline']}")
+                    #    print(f"score={function['rank']}")
+                        self.save_radon_result(library_name, file_name, file_path, function['name'], function['lineno'], function['endline'], function['rank'])
+                except TypeError:
+                    print(f"Unable to parse {function}")
 
-        # add line number file_path 
     def save_radon_result(self, library_name, file_name, file_path, function_name, file_line_start, file_line_end, score):
         with self.db as db:
             db.save_radon_result(library_name, file_name, self.language, file_path, function_name, file_line_start, file_line_end, score)
