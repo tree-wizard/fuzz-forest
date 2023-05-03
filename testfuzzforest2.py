@@ -193,16 +193,13 @@ for library_name in libraries2.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
 
-
-print("Running extended fuzz analysis")
-for library_name in libraries2.keys():
-    print(library_name)
-    langfuzz.extended_fuzz_analysis(library_name)
-"""
-
-
-
 print("Fixing fuzz test code")
 for library_name in libraries2.keys():
     print(library_name)
     langfuzz.fix_fuzz_test_code(library_name)
+
+"""
+print("Running extended fuzz analysis")
+for library_name in libraries2.keys():
+    print(library_name)
+    langfuzz.extended_fuzz_analysis(library_name, time=1000)
