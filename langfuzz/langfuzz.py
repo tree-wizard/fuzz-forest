@@ -104,14 +104,14 @@ class LangFuzz:
 
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens < 2500:
+        if num_tokens < 4500:
             return prompt
         else:
             prompt = base_template + directive + exception_check
         
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens <= 2400:
+        if num_tokens <= 4400:
             return prompt
 
     def fix_code(self, code: str, output: str) -> str:
@@ -147,7 +147,7 @@ class LangFuzz:
         max_attempts = 5
         updated_code = function_code
 
-        if num_tokens_from_string(function_code + output) < 2500:
+        if num_tokens_from_string(function_code + output) < 4000:
             for attempt in range(max_attempts):
                 print(f'fixing code, attempt {attempt}')
                 updated_code = self.fix_code(updated_code, output)
@@ -201,8 +201,6 @@ class LangFuzz:
         os.makedirs(generated_files_path, exist_ok=True)
         # get fuzz functions from db
         for function in function_list:
-        #get function from db
-
             function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
             print(function.contents)
