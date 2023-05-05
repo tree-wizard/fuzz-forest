@@ -1,8 +1,6 @@
 from langfuzz.langfuzz import LangFuzz
 from langfuzz.langfuzz_recon import LangFuzzRecon
 
-#os.environ["OPENAI_API_KEY"] = "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"
-#openai.api_key = "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"
 
 repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
@@ -202,4 +200,4 @@ for library_name in libraries2.keys():
 print("Running extended fuzz analysis")
 for library_name in libraries2.keys():
     print(library_name)
-    langfuzz.extended_fuzz_analysis(library_name, time=1000)
+    langfuzz.extended_fuzz_analysis(library_name, time=750)

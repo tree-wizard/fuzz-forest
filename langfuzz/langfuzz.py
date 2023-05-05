@@ -31,7 +31,7 @@ class LangFuzz:
                     model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
-                    max_tokens=1550,
+                    max_tokens=2750,
                     temperature=0.6,
                 )
                 return response["choices"][0]["message"]["content"]
@@ -131,7 +131,7 @@ class LangFuzz:
                     model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
-                    max_tokens=1550,
+                    max_tokens=3000,
                     temperature=0.6,
                 )
                 return response["choices"][0]["message"]["content"]
