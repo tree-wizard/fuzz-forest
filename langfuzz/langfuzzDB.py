@@ -48,7 +48,7 @@ class GeneratedFile(Base):
     exception= Column(Boolean)
     refactored = Column(Boolean)
     instrumented = Column(Boolean)
-#   deprecated = Column(Boolean)
+    deprecated = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -80,7 +80,7 @@ class Database:
             ).all()
         return functions
 
-    def get_fuzz_tests_by_filenames(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
+    def get_fuzz_tests_by_function_name(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
         query = self.session.query(GeneratedFile).filter(
             GeneratedFile.function_name.in_(functions_list), 
             GeneratedFile.fuzz_test == True)
@@ -173,6 +173,10 @@ class Database:
         results = self.session.query(LibraryFile.function_name).filter(LibraryFile.library_name == library_name).filter(LibraryFile.function_name.contains(search_string)).all()
         return results
     
+    def get_functions_in_filename(self, library_name, filename, fuzz_test=True):
+        results = self.session.query(GeneratedFile).filter(GeneratedFile.library_name == library_name, GeneratedFile.file_name == filename, GeneratedFile.fuzz_test == fuzz_test).all()
+        return results
+    
     def get_generated_functions_that_contain_string_in_contents(self, search_string):
         results = self.session.query(GeneratedFile).filter(GeneratedFile.contents.contains(search_string)).all()
         return results
@@ -207,8 +211,8 @@ class Database:
                 LibraryFile.function_name.contains('init'),
                 LibraryFile.function_name.contains('test'),
                 LibraryFile.file_name == '__init__.py',
-                LibraryFile.contents.contains('deprecated'),
-                LibraryFile.contents.op('REGEXP')(r'def \w+\(\)')
+                LibraryFile.contents.contains('deprecated')
+                # LibraryFile.contents.op('REGEXP')(r'def \w+\(\)')
             )
         )
         self.session.query(LibraryFile).filter(*conditions).delete(synchronize_session='fetch')

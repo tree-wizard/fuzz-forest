@@ -51,9 +51,9 @@ class LangFuzz:
         with self.db as db:
             db.save_fuzz_test_to_db(library_name, function_name, file_name, fuzz_test_code, tokens)
 
-    def get_fuzz_tests_by_filenames(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
+    def get_fuzz_tests_by_function_name(self, functions_list, runs=None, refactored=None, exception=None, instrumented=None):
         with self.db as db:
-            return db.get_fuzz_tests_by_filenames(functions_list, runs, refactored, exception, instrumented)
+            return db.get_fuzz_tests_by_function_name(functions_list, runs, refactored, exception, instrumented)
     
     def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
         with self.db as db:
@@ -63,6 +63,7 @@ class LangFuzz:
         with self.db as db:
             return db.get_existing_fuzz_file_data(library_name)
         
+    # possibly refactor to use get_fuzz_tests_by_function_name
     def get_generated_functions_that_contain_string_in_contents(self, search_string):
         with self.db as db:
             return db.get_generated_functions_that_contain_string_in_contents(search_string)
@@ -73,6 +74,13 @@ class LangFuzz:
         # Filter out None values and extract function names from the tuples
         function_names = [func[0] for func in result if func[0] is not None]
         return function_names
+    
+    def get_functions_by_filename(self, library_name, filename, fuzz_test=True):
+        with self.db as db:
+            result = db.get_functions_in_filename(library_name, filename, fuzz_test)
+        # Filter out None values and extract function objects from the list
+        functions = [func for func in result if func is not None]
+        return functions
     
     def get_lib_fuzz_tests_from_db(self, library_name, runs=None, exception=None, refactored=None, instrumented=None):
         with self.db as db:
@@ -199,6 +207,8 @@ class LangFuzz:
     def fuzz_functions_list(self, function_list, time=20000):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
+        original_dir = os.getcwd()
+
         # get fuzz functions from db
         for function in function_list:
             function_path = os.path.join(generated_files_path, function.function_name)
@@ -209,20 +219,28 @@ class LangFuzz:
             with open(fuzzer_file_path, 'w') as fuzzer_file:
                 fuzzer_file.write(function.contents)
 
-            command = f'python {fuzzer_file_path} -max_total_time={time}'
-            timeout = time + 100  # add 2 minute timeout to catch hangs
+            try:
+                os.chdir(function_path)
+                command = f'python {function.file_name} -max_total_time={time}'
+                timeout = time + 100  # add 2 minute timeout to catch hangs
 
-            output, crash = self.run_fuzzer(command, timeout)
-            exception = 'exception' in output.lower()
-            cov = self.parse_coverage(output)
-            print(output)
-            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+                output, crash = self.run_fuzzer(command, timeout)
+                exception = 'exception' in output.lower()
+                cov = self.parse_coverage(output)
+                print(output)
+                self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+            except Exception as e:
+                print(f"Error running fuzzer for {function.function_name}: {e}")
+            finally:
+                os.chdir(original_dir)
+
 
     def extended_fuzz_analysis_by_filenames(self, functions_list, time=20000, refactored=None, exception=None, instrumented=None):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
+        original_dir = os.getcwd()
 
-        fuzz_functions = self.get_fuzz_tests_by_filenames(functions_list, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
+        fuzz_functions = self.get_fuzz_tests_by_function_name(functions_list, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
@@ -233,19 +251,25 @@ class LangFuzz:
             with open(fuzzer_file_path, 'w') as fuzzer_file:
                 fuzzer_file.write(function.contents)
 
-            command = f'python {fuzzer_file_path} -max_total_time={time}'
-            timeout = time + 100  # add 2 minute timeout to catch hangs
+            try:
+                os.chdir(function_path)
+                command = f'python {function.file_name} -max_total_time={time}'
+                timeout = time + 100  # add 2 minute timeout to catch hangs
 
-            output, crash = self.run_fuzzer(command, timeout)
-            exception = 'exception' in output.lower()
-            cov = self.parse_coverage(output)
-            print(output)
-            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+                output, crash = self.run_fuzzer(command, timeout)
+                exception = 'exception' in output.lower()
+                cov = self.parse_coverage(output)
+                print(output)
+                self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+            except Exception as e:
+                print(f"Error running fuzzer for {function.function_name}: {e}")
+            finally:
+                os.chdir(original_dir)
 
     def extended_fuzz_analysis(self, library_name, time=20000, refactored=None, exception=None, instrumented=None):
         generated_files_path = os.path.join('saved_repos', 'generated_files', 'fuzz')
         os.makedirs(generated_files_path, exist_ok=True)
-
+        original_dir = os.getcwd()
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
 
         for function in fuzz_functions:
@@ -257,14 +281,21 @@ class LangFuzz:
             with open(fuzzer_file_path, 'w') as fuzzer_file:
                 fuzzer_file.write(function.contents)
 
-            command = f'python {fuzzer_file_path} -max_total_time={time}'
-            timeout = time + 100  # add 2 minute timeout to catch hangs
+            try:
+                os.chdir(function_path)
+                command = f'python {function.function_name} -max_total_time={time}'
+                timeout = time + 100  # add 2 minute timeout to catch hangs
 
-            output, crash = self.run_fuzzer(command, timeout)
-            exception = 'exception' in output.lower()
-            cov = self.parse_coverage(output)
-            print(output)
-            self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+                output, crash = self.run_fuzzer(command, timeout)
+                exception = 'exception' in output.lower()
+                cov = self.parse_coverage(output)
+                print(output)
+                self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
+            except Exception as e:                                                              
+                print(f"Error running fuzzer for {function.function_name}: {e}")
+            finally:
+                os.chdir(original_dir)
+
 
     def initial_fuzz_analysis(self, library):
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name=library, runs=False, exception=False)
@@ -277,8 +308,8 @@ class LangFuzz:
                 self.update_fuzz_test_in_db(function.id, runs=True, run_output=output)
             elif 'Exception' in output:
                 self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, exception=True)
-        #   elif 'deprecated' in output:
-        #       self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, deprecated=True)
+            elif 'deprecated' in output:
+               self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, deprecated=True)
             else:
                 self.update_fuzz_test_in_db(function.id, runs=False, run_output=output)
 

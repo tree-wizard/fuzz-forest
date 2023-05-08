@@ -90,3 +90,6 @@ IMPORTANT: ALWAYS use atheris.instrument_all() before calling main() to ensure t
 if __name__ == "__main__":
     atheris.instrument_all()
     main()
+
+Important:
+Before using any attributes, methods, or functions from libraries, make sure to check if they exist and are accesible. Try to avoid triggering an AttributeError.
