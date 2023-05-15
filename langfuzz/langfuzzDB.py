@@ -48,7 +48,7 @@ class GeneratedFile(Base):
     exception= Column(Boolean)
     refactored = Column(Boolean)
     instrumented = Column(Boolean)
-    deprecated = Column(Boolean)
+   # deprecated = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)

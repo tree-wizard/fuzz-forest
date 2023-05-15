@@ -242,10 +242,10 @@ class LangFuzz:
 
         fuzz_functions = self.get_fuzz_tests_by_function_name(functions_list, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
         for function in fuzz_functions:
-            function_path = os.path.join(generated_files_path, function.function_name)
+            function_path = os.path.join(generated_files_path, function.library_name, function.function_name)
             os.makedirs(function_path, exist_ok=True)
-            print(function.function_name)
-            print(function.contents)
+            #print(function.function_name)
+            #print(function.contents)
             fuzzer_file_path = os.path.join(function_path, function.file_name)
 
             with open(fuzzer_file_path, 'w') as fuzzer_file:
@@ -273,17 +273,18 @@ class LangFuzz:
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name, runs=True, refactored=refactored, exception=exception, instrumented=instrumented)
 
         for function in fuzz_functions:
-            function_path = os.path.join(generated_files_path, function.function_name)
-            os.makedirs(function_path, exist_ok=True)
-            print(function.contents)
-            fuzzer_file_path = os.path.join(function_path, function.file_name)
-
+            fuzz_test_path = os.path.join(generated_files_path, library_name, function.function_name)
+            os.makedirs(fuzz_test_path, exist_ok=True)
+            
+            fuzzer_file_path = os.path.join(fuzz_test_path, function.file_name)
+            print(fuzzer_file_path)
+            print(fuzz_test_path)
             with open(fuzzer_file_path, 'w') as fuzzer_file:
                 fuzzer_file.write(function.contents)
 
             try:
-                os.chdir(function_path)
-                command = f'python {function.function_name} -max_total_time={time}'
+                os.chdir(fuzz_test_path)
+                command = f'python {function.file_name} -max_total_time={time}'
                 timeout = time + 100  # add 2 minute timeout to catch hangs
 
                 output, crash = self.run_fuzzer(command, timeout)
