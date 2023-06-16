@@ -31,7 +31,7 @@ class LangFuzz:
                     model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
-                    max_tokens=2750,
+                    max_tokens=3500,
                     temperature=0.6,
                 )
                 return response["choices"][0]["message"]["content"]
@@ -112,14 +112,14 @@ class LangFuzz:
 
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens < 4500:
+        if num_tokens < 4900:
             return prompt
         else:
             prompt = base_template + directive + exception_check
         
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens <= 4400:
+        if num_tokens <= 4800:
             return prompt
 
     def fix_code(self, code: str, output: str) -> str:
@@ -139,7 +139,7 @@ class LangFuzz:
                     model='gpt-4',
                     messages=[
                         {"role": "system", "content": prompt}],
-                    max_tokens=3000,
+                    max_tokens=3500,
                     temperature=0.6,
                 )
                 return response["choices"][0]["message"]["content"]
