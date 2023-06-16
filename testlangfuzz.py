@@ -7,24 +7,6 @@ repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
 sqlitedb = 'langfuzz.db'
 
-libraries2 = { 
-    'babel': 'https://github.com/python-babel/babel',
-    'twisted': {
-        'github': 'https://github.com/twisted/twisted',
-        'docs': 'https://docs.twisted.org/en/stable/'
-    },
-    'scrapy' : 'https://github.com/scrapy/scrapy',
-    'flask': 'https://github.com/pallets/flask',
-    'tornado': 'https://github.com/tornadoweb/tornado',
-    'django': 'https://github.com/django/django',
-    'scipy': 'https://github.com/scipy/scipy',
-    'numpy': 'https://github.com/numpy/numpy',
-    'pytorch': 'https://github.com/pytorch/pytorch',
-    'beautifulsoup4': 'https://github.com/wention/BeautifulSoup4',
-    'idna': 'https://github.com/kjd/idna',
-    'charset_normalizer': 'https://github.com/Ousret/charset_normalizer'
-}
-
 libraries1 = {
     'urllib3': {
         'github': 'https://github.com/urllib3/urllib3',
@@ -97,14 +79,14 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 #for library_name in libraries1.keys():
 #    print(library_name)
 #    langfuzz.fix_fuzz_test_code(library_name)
-
+"""
 # Running extended fuzz analysis
 print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, 2000, exception=False, instrumented=True) # deprecated=False)
-"""
+
 # extended fuzz analysis pass on instrumented code
 for library_name in http_libs.keys():
     print(library_name)
@@ -117,5 +99,3 @@ for library_name in http_libs.keys():
 #    langfuzz.analyze_fuzz_coverage(library_name)
 #    langfuzz.triage_fuzz_crashes(library_name)]
 """
-
-
