@@ -6,7 +6,7 @@ repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
 sqlitedb = 'langfuzz-libs2.db'
 
-libraries2 = { 
+libraries = { 
     'babel': 'https://github.com/python-babel/babel',
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
@@ -28,7 +28,7 @@ libraries2 = {
     'charset_normalizer': 'https://github.com/Ousret/charset_normalizer'
 }
 
-#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries2, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries, 'python')
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
 """
@@ -187,17 +187,17 @@ langfuzz.generate_fuzz_tests(library_name, function_list)
 print(fuzzer_count)
 
 print("Running initial fuzz analysis")
-for library_name in libraries2.keys():
+for library_name in libraries.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
 
 print("Fixing fuzz test code")
-for library_name in libraries2.keys():
+for library_name in libraries.keys():
     print(library_name)
     langfuzz.fix_fuzz_test_code(library_name)
 
 """
 print("Running extended fuzz analysis")
-for library_name in libraries2.keys():
+for library_name in libraries.keys():
     print(library_name)
     langfuzz.extended_fuzz_analysis(library_name, time=750)
