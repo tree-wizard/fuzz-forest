@@ -7,6 +7,9 @@ Read more about the motivation, implementation, and research insights in the blo
 
 ## How to Use
 
+python3 -m venv venv
+
+
 ## Testcase
 ```
 from langfuzz.langfuzz import LangFuzz
