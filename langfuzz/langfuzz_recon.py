@@ -127,10 +127,13 @@ class LangFuzzRecon:
                 importlib.import_module(library_name)
                 print(f"{library_name} is already installed.")
             except ImportError:
-             # If not installed, install the library using pip
+                # If not installed, install the library using pip
                 print(f"Installing {library_name}...")
-                subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
-                print(f"{library_name} installed successfully.")
+                try:
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
+                    print(f"{library_name} installed successfully.")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error installing {library_name}: {e}")
 
     def get_function_code(self, file_path, file_line_start, file_line_end):
       with open(file_path, 'r') as f:

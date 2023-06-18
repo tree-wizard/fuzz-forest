@@ -187,17 +187,29 @@ langfuzz.generate_fuzz_tests(library_name, function_list)
 print(fuzzer_count)
 
 print("Running initial fuzz analysis")
-for library_name in libraries.keys():
+for library_name in libraries2.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
 
+# created x fuzz tests
+# x run = True
+# cost of $.
+
+
 print("Fixing fuzz test code")
-for library_name in libraries.keys():
+for library_name in libraries2.keys():
     print(library_name)
     langfuzz.fix_fuzz_test_code(library_name)
 
-"""
+# max attempts of 5
+# 'fixed' x of x to run status
+# x have exception=True
+# $.x
+# xx instrumented
+
 print("Running extended fuzz analysis")
 for library_name in libraries.keys():
     print(library_name)
+    langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, time=750)
+"""

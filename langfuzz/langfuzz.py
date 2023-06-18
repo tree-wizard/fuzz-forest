@@ -28,7 +28,8 @@ class LangFuzz:
         for _ in range(max_retries):
             try:
                 response = openai.ChatCompletion.create(
-                    model='gpt-4',
+                    #model='gpt-4',
+                    model='gpt-3.5-turbo-16k',
                     messages=[
                         {"role": "system", "content": prompt}],
                     max_tokens=3500,
@@ -133,10 +134,18 @@ class LangFuzz:
                     f"{code}\n"
                     f"---Code Ends---\n\n"
                     f"Output: {output}\n\n"
-                    f"IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
+                    f"""IMPORTANT: Return only valid and properly formatted Python code. Do NOT include any comments, explanations or notes on the changes made."
+                    f"IMPORTANT: Make sure the fuzzer always includes atheris.instrument_all() and executes it first like so
+                    def main():
+                    atheris.Setup(sys.argv, TestOneInput)
+                    atheris.Fuzz()
+                    if __name__ == \"__main__\":
+                    atheris.instrument_all() # This is needed for coverage to work.
+                    main()"""
                 )
                 response = openai.ChatCompletion.create(
-                    model='gpt-4',
+                    #model='gpt-4',
+                    model='gpt-3.5-turbo-16k',
                     messages=[
                         {"role": "system", "content": prompt}],
                     max_tokens=3500,
@@ -152,14 +161,15 @@ class LangFuzz:
 
     def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
         successful_run = 'Done 2 runs'
-        max_attempts = 5
+        max_attempts = 7
         updated_code = function_code
 
-        if num_tokens_from_string(function_code + output) < 4000:
+        if num_tokens_from_string(function_code + output) < 4500:
             for attempt in range(max_attempts):
                 print(f'fixing code, attempt {attempt}')
                 updated_code = self.fix_code(updated_code, output)
                 new_output = run_atheris_fuzzer(updated_code)
+                #print(updated_code)
 
                 if successful_run in new_output:
                     print('fixed')
@@ -167,6 +177,7 @@ class LangFuzz:
                 else:
                     output = new_output
                     time.sleep(1)
+        print('Reached max_attempts without sucessfull run')
         return updated_code, output, False
 
     def fix_fuzz_test_code(self, library_name):
@@ -213,7 +224,6 @@ class LangFuzz:
         for function in function_list:
             function_path = os.path.join(generated_files_path, function.function_name)
             os.makedirs(function_path, exist_ok=True)
-            print(function.contents)
             fuzzer_file_path = os.path.join(function_path, function.file_name)
 
             with open(fuzzer_file_path, 'w') as fuzzer_file:
@@ -227,7 +237,6 @@ class LangFuzz:
                 output, crash = self.run_fuzzer(command, timeout)
                 exception = 'exception' in output.lower()
                 cov = self.parse_coverage(output)
-                print(output)
                 self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
             except Exception as e:
                 print(f"Error running fuzzer for {function.function_name}: {e}")
@@ -244,7 +253,7 @@ class LangFuzz:
         for function in fuzz_functions:
             function_path = os.path.join(generated_files_path, function.library_name, function.function_name)
             os.makedirs(function_path, exist_ok=True)
-            #print(function.function_name)
+            print(function.function_name)
             #print(function.contents)
             fuzzer_file_path = os.path.join(function_path, function.file_name)
 
@@ -259,7 +268,6 @@ class LangFuzz:
                 output, crash = self.run_fuzzer(command, timeout)
                 exception = 'exception' in output.lower()
                 cov = self.parse_coverage(output)
-                print(output)
                 self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
             except Exception as e:
                 print(f"Error running fuzzer for {function.function_name}: {e}")
@@ -278,7 +286,6 @@ class LangFuzz:
             
             fuzzer_file_path = os.path.join(fuzz_test_path, function.file_name)
             print(fuzzer_file_path)
-            print(fuzz_test_path)
             with open(fuzzer_file_path, 'w') as fuzzer_file:
                 fuzzer_file.write(function.contents)
 
@@ -290,7 +297,6 @@ class LangFuzz:
                 output, crash = self.run_fuzzer(command, timeout)
                 exception = 'exception' in output.lower()
                 cov = self.parse_coverage(output)
-                print(output)
                 self.update_fuzz_test_in_db(function.id, run_output=output, coverage=cov, exception=exception, crash=crash)
             except Exception as e:                                                              
                 print(f"Error running fuzzer for {function.function_name}: {e}")
@@ -300,7 +306,7 @@ class LangFuzz:
 
     def initial_fuzz_analysis(self, library):
         fuzz_functions = self.get_lib_fuzz_tests_from_db(library_name=library, runs=False, exception=False)
-        print(len(fuzz_functions))
+        print("Initial Fuzzing of " + str(len(fuzz_functions)) + " function for " + library)
         for function in fuzz_functions:
             print(function.function_name)
             output = run_atheris_fuzzer(function.contents)
@@ -317,7 +323,7 @@ class LangFuzz:
     def add_fuzz_files_to_prompt(self, file_data):
         fuzz_prompt_context = ''
         for function in file_data:
-            fuzz_prompt_context += f"Valid example fuzzer for {function.function_name}:\n{function.contents}\n"
+            fuzz_prompt_context += f"Valid example fuzzers:\n{function.contents}\n"
         return fuzz_prompt_context
     
     def generate_fuzz_tests(self, library_name, function_list=None):

@@ -1,11 +1,9 @@
 from langfuzz.langfuzz import LangFuzz
 from langfuzz.langfuzz_recon import LangFuzzRecon
 
-
-lib = 'urllib3'
 repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
-sqlitedb = 'langfuzz.db'
+sqlitedb = 'langfuzz-lib1-gpt3.db'
 
 libraries1 = {
     'urllib3': {
@@ -32,13 +30,13 @@ libraries1 = {
     'rq': 'https://github.com/rq/rq'}
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
 # radon_score is optional
-#radon_score = ['C', 'D', 'E', 'F']
-#priority_funcs = langfuzz.get_radon_functions_from_db("cryptography", radon_score)
+radon_score = ['D', 'E', 'F']
+
 #load_functions = langfuzz.get_functions_that_contain_string("cryptography", 'load')
 #langfuzz.generate_fuzz_tests("cryptography", load_functions)
 #langfuzz.initial_fuzz_analysis("cryptography")
@@ -48,50 +46,57 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
 #func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
 #langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
-
-
-## First pass
-#print("Generating fuzz tests")
-#for library_name in libraries1.keys():
-#    print(library_name)   
-#    #print("Getting functions that contain string 'parse'")
-#    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')
-#    format_functions = langfuzz.get_functions_that_contain_string(library_name, 'format')
-#    load_functions = langfuzz.get_functions_that_contain_string(library_name, 'load')
-#    encode_functions = langfuzz.get_functions_that_contain_string(library_name, 'encode')
-#    decode_functions = langfuzz.get_functions_that_contain_string(library_name, 'decode')
-#    serialze_functions = langfuzz.get_functions_that_contain_string(library_name, 'serialize')
-#    langfuzz.generate_fuzz_tests(library_name, parse_functions)
-#    langfuzz.generate_fuzz_tests(library_name, format_functions)
-#    langfuzz.generate_fuzz_tests(library_name, load_functions)
-#    langfuzz.generate_fuzz_tests(library_name, encode_functions)
-#    langfuzz.generate_fuzz_tests(library_name, decode_functions)
-#    langfuzz.generate_fuzz_tests(library_name, serialze_functions)
+'''
+print("Generating fuzz tests")
+for library_name in libraries1.keys():
+    print(library_name)
+    complex_functions = langfuzz.get_radon_functions_from_db(library_name, radon_score)
+    parse_functions = langfuzz.get_functions_that_contain_string(library_name, 'parse')    
+    format_functions = langfuzz.get_functions_that_contain_string(library_name, 'format')
+    encode_functions = langfuzz.get_functions_that_contain_string(library_name, 'encode')
+    decode_functions = langfuzz.get_functions_that_contain_string(library_name, 'decode')
+    serialze_functions = langfuzz.get_functions_that_contain_string(library_name, 'serialize')
+    langfuzz.generate_fuzz_tests(library_name, parse_functions)
+    langfuzz.generate_fuzz_tests(library_name, format_functions)
+    langfuzz.generate_fuzz_tests(library_name, encode_functions)
+    langfuzz.generate_fuzz_tests(library_name, decode_functions)
+    langfuzz.generate_fuzz_tests(library_name, serialze_functions)
 
 # Initial fuzz pass
-#print("Running initial fuzz analysis")
-#for library_name in libraries1.keys():
-#    print(library_name)
-#    langfuzz.initial_fuzz_analysis(library_name) 
-#
+print("Running initial fuzz analysis")
+for library_name in libraries1.keys():
+    print(library_name)
+    langfuzz.initial_fuzz_analysis(library_name) 
+
+# created 65 fuzz tests
+# 20 run
+# cost of $.40
+    
+
 ## Fixing non running fuzz tests
-#print("Fixing fuzz test code")
-#for library_name in libraries1.keys():
-#    print(library_name)
-#    langfuzz.fix_fuzz_test_code(library_name)
-"""
+print("Fixing fuzz test code")
+for library_name in libraries1.keys():
+    print(library_name)
+    langfuzz.fix_fuzz_test_code(library_name)
+    
+# max attempts of 7
+# 'fixed' 41 of 45 to run status
+# 16 have exception=True
+# $.78
+# all instrumented
+'''
+
+
+
 # Running extended fuzz analysis
 print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, 2000, exception=False, instrumented=True) # deprecated=False)
+    langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
 
-# extended fuzz analysis pass on instrumented code
-for library_name in http_libs.keys():
-    print(library_name)
-    langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, 1200, instrumented=True)
+"""
+
 
 # Triage Pass
 #for library_name in http_libs.keys():
