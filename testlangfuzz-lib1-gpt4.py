@@ -30,7 +30,7 @@ libraries1 = {
     'rq': 'https://github.com/rq/rq'}
 
 # Recon to create the database with fuzzing data.
-#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
