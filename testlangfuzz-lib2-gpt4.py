@@ -17,7 +17,7 @@ libraries2 = {
     'django': 'https://github.com/django/django',
     'scipy': 'https://github.com/scipy/scipy',
     'numpy': 'https://github.com/numpy/numpy',
-    'pytorch': 'https://github.com/pytorch/pytorch',
+    #'pytorch': 'https://github.com/pytorch/pytorch',
     'pandas': 'https://github.com/pandas-dev/pandas',
     'ansible': 'https://github.com/ansible/ansible',
     'homeassistant': 'https://github.com/home-assistant/core',

@@ -84,10 +84,9 @@ print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
+    langfuzz.extended_fuzz_analysis(library_name, 100, exception=True, instrumented=True) # deprecated=False)
 
 """
-
 
 # Triage Pass
 #for library_name in http_libs.keys():
