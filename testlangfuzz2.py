@@ -118,15 +118,15 @@ print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
-print("Generating pytorch fuzz tests")
-library_name = 'pytorch'
-function_list = []
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'decode'))
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
-print(len(function_list))
-fuzzer_count += len(function_list)
-langfuzz.generate_fuzz_tests(library_name, function_list)
+#print("Generating pytorch fuzz tests")
+#library_name = 'pytorch'
+#function_list = []
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'decode'))
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
+#print(len(function_list))
+#fuzzer_count += len(function_list)
+#langfuzz.generate_fuzz_tests(library_name, function_list)
 
 print("Generating Pandas fuzz tests")
 library_name = 'pandas'
@@ -187,17 +187,17 @@ langfuzz.generate_fuzz_tests(library_name, function_list)
 
 print("Generated " + str(fuzzer_count) + " fuzzers.")
 
-""" 
+
 print("Running initial fuzz analysis")
 for library_name in libraries2.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
 
-# created x fuzz tests
-# x run = True
-# cost of $.
+# created 451 fuzz tests
+# 111 run = True
+# cost of $3.92
 
-
+""" 
 print("Fixing fuzz test code")
 for library_name in libraries2.keys():
     print(library_name)

@@ -118,15 +118,15 @@ print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
-print("Generating pytorch fuzz tests")
-library_name = 'pytorch'
-function_list = []
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'decode'))
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
-print(len(function_list))
-fuzzer_count += len(function_list)
-langfuzz.generate_fuzz_tests(library_name, function_list)
+#print("Generating pytorch fuzz tests")
+#library_name = 'pytorch'
+#function_list = []
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'decode'))
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
+#print(len(function_list))
+#fuzzer_count += len(function_list)
+#langfuzz.generate_fuzz_tests(library_name, function_list)
 
 print("Generating Pandas fuzz tests")
 library_name = 'pandas'
@@ -137,7 +137,7 @@ print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
-print("Genearating Ansible fuzz tests")
+print("Generarating Ansible fuzz tests")
 library_name = 'ansible'
 function_list = []
 function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
@@ -147,7 +147,7 @@ print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
-print("Genearting homeassistant fuzz tests")
+print("Generarting homeassistant fuzz tests")
 library_name = 'homeassistant'
 function_list = []
 function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
