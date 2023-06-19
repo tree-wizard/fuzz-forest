@@ -187,7 +187,6 @@ langfuzz.generate_fuzz_tests(library_name, function_list)
 
 print("Generated " + str(fuzzer_count) + " fuzzers.")
 
-""" 
 print("Running initial fuzz analysis")
 for library_name in libraries2.keys():
     print(library_name)
@@ -197,7 +196,7 @@ for library_name in libraries2.keys():
 # x run = True
 # cost of $.
 
-
+""" 
 print("Fixing fuzz test code")
 for library_name in libraries2.keys():
     print(library_name)
