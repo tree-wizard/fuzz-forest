@@ -28,7 +28,7 @@ libraries2 = {
 }
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries2, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries2, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
@@ -194,6 +194,7 @@ for library_name in libraries2.keys():
     langfuzz.initial_fuzz_analysis(library_name)
 
 # created 451 fuzz tests
+# 115 pytorch
 # 111 run = True
 # cost of $3.92
 """
