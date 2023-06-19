@@ -28,8 +28,8 @@ class LangFuzz:
         for _ in range(max_retries):
             try:
                 response = openai.ChatCompletion.create(
-                    #model='gpt-4',
-                    model='gpt-3.5-turbo-16k',
+                    model='gpt-4',
+                    #model='gpt-3.5-turbo-16k',
                     messages=[
                         {"role": "system", "content": prompt}],
                     max_tokens=3500,
@@ -144,11 +144,11 @@ class LangFuzz:
                     main()"""
                 )
                 response = openai.ChatCompletion.create(
-                    #model='gpt-4',
-                    model='gpt-3.5-turbo-16k',
+                    model='gpt-4',
+                    #model='gpt-3.5-turbo-16k',
                     messages=[
                         {"role": "system", "content": prompt}],
-                    max_tokens=3500,
+                    max_tokens=4500,
                     temperature=0.6,
                 )
                 return response["choices"][0]["message"]["content"]
@@ -161,7 +161,7 @@ class LangFuzz:
 
     def fix_fuzz_test(self, function_code, output) -> Tuple[str, str, bool]:
         successful_run = 'Done 2 runs'
-        max_attempts = 7
+        max_attempts = 5
         updated_code = function_code
 
         if num_tokens_from_string(function_code + output) < 4500:

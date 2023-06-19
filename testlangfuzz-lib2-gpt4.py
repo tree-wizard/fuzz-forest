@@ -1,12 +1,11 @@
 from langfuzz.langfuzz import LangFuzz
 from langfuzz.langfuzz_recon import LangFuzzRecon
 
-
 repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
-sqlitedb = 'langfuzz-libs2.db'
+sqlitedb = 'langfuzz-lib2-gpt4.db'
 
-libraries = { 
+libraries2 = { 
     'babel': 'https://github.com/python-babel/babel',
     'twisted': {
         'github': 'https://github.com/twisted/twisted',
@@ -18,7 +17,7 @@ libraries = {
     'django': 'https://github.com/django/django',
     'scipy': 'https://github.com/scipy/scipy',
     'numpy': 'https://github.com/numpy/numpy',
-    'pytorch': 'https://github.com/pytorch/pytorch',
+    #'pytorch': 'https://github.com/pytorch/pytorch',
     'pandas': 'https://github.com/pandas-dev/pandas',
     'ansible': 'https://github.com/ansible/ansible',
     'homeassistant': 'https://github.com/home-assistant/core',
@@ -28,10 +27,12 @@ libraries = {
     'charset_normalizer': 'https://github.com/Ousret/charset_normalizer'
 }
 
-#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries, 'python')
+# Recon to create the database with fuzzing data.
+langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries2, 'python')
+# set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
-"""
+
 # In this approach we are going to individually desribe the fuzz tests we want to generate
 fuzzer_count = 0
 radon_score = ['D', 'E', 'F']
@@ -184,7 +185,7 @@ print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
 
-print(fuzzer_count)
+print("Generated " + str(fuzzer_count) + " fuzzers.")
 
 print("Running initial fuzz analysis")
 for library_name in libraries2.keys():
@@ -195,7 +196,7 @@ for library_name in libraries2.keys():
 # x run = True
 # cost of $.
 
-
+""" 
 print("Fixing fuzz test code")
 for library_name in libraries2.keys():
     print(library_name)
