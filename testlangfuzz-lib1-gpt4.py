@@ -3,7 +3,7 @@ from langfuzz.langfuzz_recon import LangFuzzRecon
 
 repo_path = 'saved_repos'
 base_prompts_path = "prompts/base-atheris-prompt.py"
-sqlitedb = 'langfuzz-lib1-gpt3.db'
+sqlitedb = 'langfuzz-lib1-gpt4.db'
 
 libraries1 = {
     'urllib3': {
@@ -37,7 +37,7 @@ langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 # radon_score is optional
 radon_score = ['D', 'E', 'F']
 
-'''
+
 print("Generating fuzz tests")
 for library_name in libraries1.keys():
     print(library_name)
@@ -59,23 +59,23 @@ for library_name in libraries1.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name) 
 
-# created 65 fuzz tests
-# 20 run
-# cost of $.40
+# created xx fuzz tests
+# xx run
+# cost of $.xx
     
-
+'''
 ## Fixing non running fuzz tests
 print("Fixing fuzz test code")
 for library_name in libraries1.keys():
     print(library_name)
     langfuzz.fix_fuzz_test_code(library_name)
+    
+# max attempts of 5
+# 'fixed' xx of xx to run status
+# xx have exception=True
+# $.xx
+# xx instrumented
 
-# max attempts of 7
-# 'fixed' 41 of 45 to run status
-# 16 have exception=True
-# $.78
-# all instrumented
-'''
 
 
 
@@ -85,6 +85,8 @@ for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
+'''
+
 
 """
 

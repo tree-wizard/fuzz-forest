@@ -77,3 +77,16 @@ Codebase Coverage Metrics: We plan to include features to automatically calculat
 
 
 # Trophy Case
+
+
+
+
+#load_functions = langfuzz.get_functions_that_contain_string("cryptography", 'load')
+#langfuzz.generate_fuzz_tests("cryptography", load_functions)
+#langfuzz.initial_fuzz_analysis("cryptography")
+#langfuzz.fix_fuzz_test_code("cryptography")
+#langfuzz.check_instrumentation()
+#langfuzz.extended_fuzz_analysis("cryptography", 7500, exception=False)
+
+#func_list = ['parsemsg', 'parseIdList', 'load_pkcs12', 'serialize_key_and_certificates']
+#langfuzz.extended_fuzz_analysis_by_filenames(func_list, time=600)
