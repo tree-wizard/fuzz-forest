@@ -313,7 +313,7 @@ class LangFuzz:
 
             if 'Done 2 runs' in output:
                 self.update_fuzz_test_in_db(function.id, runs=True, run_output=output)
-            elif 'Exception' in output:
+            elif 'Python exception' in output:
                 self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, exception=True)
             elif 'deprecated' in output:
                self.update_fuzz_test_in_db(function.id, runs=False, run_output=output, deprecated=True)
