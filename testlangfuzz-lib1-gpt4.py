@@ -30,14 +30,13 @@ libraries1 = {
     'rq': 'https://github.com/rq/rq'}
 
 # Recon to create the database with fuzzing data.
-langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
+#langfuzz_recon = LangFuzzRecon(sqlitedb, repo_path, libraries1, 'python')
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
+''' 
 # radon_score is optional
 radon_score = ['D', 'E', 'F']
-
-
 print("Generating fuzz tests")
 for library_name in libraries1.keys():
     print(library_name)
@@ -59,10 +58,18 @@ for library_name in libraries1.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name) 
 
-# created xx fuzz tests
-# xx run
-# cost of $.xx
-    
+# created 65 fuzz tests
+# 30 run
+# cost of $4.28
+ '''  
+
+# Running extended fuzz analysis
+print("Running extended fuzz analysis")
+for library_name in libraries1.keys():
+    print(library_name)
+    langfuzz.check_instrumentation()
+    langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
+
 '''
 ## Fixing non running fuzz tests
 print("Fixing fuzz test code")
