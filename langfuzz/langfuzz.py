@@ -56,9 +56,9 @@ class LangFuzz:
         with self.db as db:
             return db.get_fuzz_tests_by_function_name(functions_list, runs, refactored, exception, instrumented)
     
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None, deprecated=None):
         with self.db as db:
-            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored, instrumented)
+            db.update_fuzz_test_in_db(id, runs, run_output, coverage, exception, crash, contents, refactored, instrumented, deprecated)
 
     def get_existing_fuzz_file_data(self, library_name):
         with self.db as db:
