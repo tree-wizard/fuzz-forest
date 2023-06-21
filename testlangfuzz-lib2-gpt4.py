@@ -32,7 +32,7 @@ libraries2 = {
 # set up the langfuzz main class
 langfuzz = LangFuzz(sqlitedb, 'python', base_prompts_path)
 
-
+'''
 # In this approach we are going to individually desribe the fuzz tests we want to generate
 fuzzer_count = 0
 radon_score = ['D', 'E', 'F']
@@ -192,9 +192,16 @@ for library_name in libraries2.keys():
     print(library_name)
     langfuzz.initial_fuzz_analysis(library_name)
 
-# created x fuzz tests
-# x run = True
-# cost of $.
+# created 338 fuzz tests
+# 111 run = True
+# cost of $22.17
+'''
+langfuzz.check_instrumentation()
+print("Running extended fuzz analysis")
+for library_name in libraries2.keys():
+    print(library_name)
+    langfuzz.extended_fuzz_analysis(library_name, time=750)
+
 
 """ 
 print("Fixing fuzz test code")

@@ -198,12 +198,11 @@ for library_name in libraries2.keys():
 # 111 run = True
 # cost of $3.92
 """
-
+langfuzz.check_instrumentation()
 print("Running extended fuzz analysis")
 for library_name in libraries2.keys():
     print(library_name)
-    langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, time=750)
+    langfuzz.extended_fuzz_analysis(library_name, time=200)
 
 """ 
 print("Fixing fuzz test code")

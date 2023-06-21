@@ -82,16 +82,13 @@ for library_name in libraries1.keys():
 # $.xx
 # xx instrumented
 
-
-'''
-
 # Running extended fuzz analysis
+langfuzz.check_instrumentation()
 print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
-    langfuzz.check_instrumentation()
-    langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
-'''
+    langfuzz.extended_fuzz_analysis(library_name, 500, exception=False, instrumented=True) # deprecated=False)
+
 
 
 """
