@@ -61,7 +61,6 @@ for library_name in libraries1.keys():
 # created 65 fuzz tests
 # 30 run
 # cost of $4.28
- '''  
 
 # Running extended fuzz analysis
 print("Running extended fuzz analysis")
@@ -69,8 +68,8 @@ for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
+ '''  
 
-'''
 ## Fixing non running fuzz tests
 print("Fixing fuzz test code")
 for library_name in libraries1.keys():
@@ -84,7 +83,7 @@ for library_name in libraries1.keys():
 # xx instrumented
 
 
-
+'''
 
 # Running extended fuzz analysis
 print("Running extended fuzz analysis")
