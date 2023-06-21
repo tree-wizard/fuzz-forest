@@ -68,7 +68,7 @@ for library_name in libraries1.keys():
     print(library_name)
     langfuzz.check_instrumentation()
     langfuzz.extended_fuzz_analysis(library_name, 100, exception=False, instrumented=True) # deprecated=False)
- '''  
+
 
 ## Fixing non running fuzz tests
 print("Fixing fuzz test code")
@@ -77,17 +77,18 @@ for library_name in libraries1.keys():
     langfuzz.fix_fuzz_test_code(library_name)
     
 # max attempts of 5
-# 'fixed' xx of xx to run status
-# xx have exception=True
-# $.xx
-# xx instrumented
+# 'fixed' 18 of 35 to run=True
+# 22 have exception=True
+# $4.35
+# 63 of 65 instrumented
+ '''  
 
 # Running extended fuzz analysis
 langfuzz.check_instrumentation()
 print("Running extended fuzz analysis")
 for library_name in libraries1.keys():
     print(library_name)
-    langfuzz.extended_fuzz_analysis(library_name, 500, exception=False, instrumented=True) # deprecated=False)
+    langfuzz.extended_fuzz_analysis(library_name, 5000, exception=False, instrumented=True) # deprecated=False)
 
 
 
