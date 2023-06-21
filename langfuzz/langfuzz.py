@@ -109,18 +109,18 @@ class LangFuzz:
         prompt = base_template
         if fuzzer_context is not None:
             prompt += fuzzer_context
-        prompt += directive + "This is the source code for" + function_name + ":" + function_code + exception_check
+        prompt += f"{directive}This is the source code for{function_name}:{function_code}{exception_check}"
 
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens < 4900:
+        if num_tokens < 4500:
             return prompt
         else:
             prompt = base_template + directive + exception_check
         
         num_tokens = num_tokens_from_string(prompt)
 
-        if num_tokens <= 4800:
+        if num_tokens <= 4500:
             return prompt
 
     def fix_code(self, code: str, output: str) -> str:

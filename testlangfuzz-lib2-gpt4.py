@@ -161,8 +161,8 @@ print("Generating transformers fuzz tests")
 library_name = 'transformers'
 function_list = []
 function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'parse'))
-function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
-function_list.extend(langfuzz.get_radon_functions_from_db(library_name, ['E', 'F']))
+#function_list.extend(langfuzz.get_functions_that_contain_string(library_name, 'serial'))
+#function_list.extend(langfuzz.get_radon_functions_from_db(library_name, ['E', 'F']))
 print(len(function_list))
 fuzzer_count += len(function_list)
 langfuzz.generate_fuzz_tests(library_name, function_list)
