@@ -48,7 +48,7 @@ class GeneratedFile(Base):
     exception= Column(Boolean)
     refactored = Column(Boolean)
     instrumented = Column(Boolean)
-   # deprecated = Column(Boolean)
+    deprecated = Column(Boolean)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
@@ -145,7 +145,7 @@ class Database:
             self.session.add(generated_file)
             self.session.commit()
 
-    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None):
+    def update_fuzz_test_in_db(self, id, runs=None, run_output=None, coverage=None, exception=None, crash=None, contents=None, refactored=None, instrumented=None, deprecated=None):
         fuzz_test = self.session.query(GeneratedFile).filter_by(id=id).first()
         if runs is not None:
             fuzz_test.runs = runs
@@ -163,6 +163,8 @@ class Database:
             fuzz_test.refactored = refactored
         if instrumented is not None:
             fuzz_test.instrumented = instrumented
+        if deprecated is not None:
+            fuzz_test.deprecated = deprecated
         self.session.commit()        
 
     def get_existing_fuzz_file_data(self, library_name):
