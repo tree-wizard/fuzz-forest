@@ -8,9 +8,9 @@ sqlitedb = 'langfuzz-lib2-gpt4.db'
 libraries2 = { 
     #'babel': 'https://github.com/python-babel/babel',
     #'twisted': {
-        'github': 'https://github.com/twisted/twisted',
-        'docs': 'https://docs.twisted.org/en/stable/'
-    },
+    #    'github': 'https://github.com/twisted/twisted',
+    #    'docs': 'https://docs.twisted.org/en/stable/'
+   # },
     #'scrapy' : 'https://github.com/scrapy/scrapy',
     #'flask': 'https://github.com/pallets/flask',
     #'tornado': 'https://github.com/tornadoweb/tornado',
